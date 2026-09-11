@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relay Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <span class="dot" id="live" title="disconnected"></span>
+    <h1>Relay Console</h1>
+  </div>
+  <div class="barmeta">
+    <span id="routehealth" class="pill neutral">routes —</span>
+    <span id="count" class="muted"></span>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ── left rail ─────────────────────────────────────────────── -->
+  <aside class="rail">
+    <section class="card intake">
+      <h2>New ticket</h2>
+      <form id="newtask" autocomplete="off">
+        <label for="spec">Requirement</label>
+        <textarea id="spec" rows="9" placeholder="Paste the ticket requirement here.
+
+You can also paste a screenshot directly into this box — it travels with the task and every session opens the original."></textarea>
+
+        <div id="drop" class="drop">
+          <span class="dz">Drop or paste an image</span>
+          <div id="thumbwrap" hidden>
+            <img id="thumb" alt="attached requirement">
+            <button type="button" id="rmimg" class="link">remove</button>
+          </div>
+        </div>
+
+        <label for="title">Title <span class="opt">optional</span></label>
+        <input id="title" type="text" placeholder="first line of the requirement">
+
+        <div class="row2">
+          <div>
+            <label for="kind">Work type</label>
+            <select id="kind">
+              <option value="answer">answer — selections + explanation</option>
+              <option value="repo">repo — find a repository</option>
+              <option value="project">project — build something new</option>
+              <option value="prompt">prompt — author failure prompts</option>
+            </select>
+          </div>
+          <div>
+            <label for="mode">Result shape</label>
+            <select id="mode">
+              <option value="paste">paste — text for the form</option>
+              <option value="guide">guide — steps to follow</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div>
+            <label for="why">Why this type</label>
+            <input id="why" type="text" placeholder="one sentence, recorded in the ledger">
+          </div>
+          <div class="narrow">
+            <label for="cap">Retries</label>
+            <input id="cap" type="number" min="1" max="9" value="3">
+          </div>
+        </div>
+
+        <button type="submit" id="create">Create task</button>
+        <p id="formerr" class="err" hidden></p>
+      </form>
+    </section>
+
+    <section class="card list">
+      <h2>Tasks</h2>
+      <div id="tasklist"><p class="empty">No tasks yet.</p></div>
+    </section>
+  </aside>
+
+  <!-- ── main ──────────────────────────────────────────────────── -->
+  <main id="detail">
+    <div class="placeholder">
+      <p>Select a task, or create one to begin.</p>
+      <p class="muted small">This console reads and writes the same ledger as <code>bin/relay.mjs</code>. It does not run the sessions — it shows you what each one is owed and hands you the text to send.</p>
+    </div>
+  </main>
+
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<template id="tpl-detail">
+  <section class="card head">
+    <div class="headrow">
+      <h2 class="ttl"></h2>
+      <span class="pill state"></span>
+    </div>
+    <div class="facts"></div>
+  </section>
+
+  <section class="card stages">
+    <ol class="stagestrip"></ol>
+    <div class="slots"></div>
+  </section>
+
+  <section class="card next">
+    <h3><span class="nlabel"></span></h3>
+    <p class="nhint muted small"></p>
+    <div class="sendto" hidden>
+      <div class="sendhead">
+        <span class="mono sess"></span>
+        <button class="copy env">Copy envelope</button>
+      </div>
+      <pre class="envelope"></pre>
+    </div>
+    <div class="acts"></div>
+    <p class="acterr err" hidden></p>
+  </section>
+
+  <section class="card result" hidden>
+    <div class="headrow">
+      <h3 class="rlabel"></h3>
+      <button class="copy payload">Copy result</button>
+    </div>
+    <p class="rhint muted small"></p>
+    <pre class="payloadbox"></pre>
+  </section>
+
+  <section class="card reviews" hidden>
+    <h3>Reviews</h3>
+    <div class="revbody"></div>
+  </section>
+
+  <details class="card hist">
+    <summary>History</summary>
+    <div class="histbody"></div>
+  </details>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
