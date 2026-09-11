@@ -1,0 +1,11 @@
+{
+  "orchestrator": "qa-2-99",
+  "model-analyst": "PLACEHOLDER-model-analyst",
+  "worker-answer": "PLACEHOLDER-answer",
+  "worker-repo": "PLACEHOLDER-repo",
+  "worker-project": "PLACEHOLDER-project",
+  "worker-prompt": "PLACEHOLDER-prompt",
+  "reviewer-a": "PLACEHOLDER-review-a",
+  "reviewer-b": "PLACEHOLDER-review-b",
+  "result": "PLACEHOLDER-result"
+}
