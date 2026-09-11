@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand"><span class="dot" id="live" title="disconnected"></span><h1>Claude Workflow</h1>
+    <span id="ver" class="ver" title="which build is running"></span></div>
+  <div class="barmeta">
+    <button id="opensettings" class="ghost">Settings</button>
+    <span id="envwarn" class="pill bad" hidden>not signed in</span>
+    <span id="execwarn" class="pill warn" hidden title="run_command is enabled — the model can execute shell commands inside a task workspace">shell on</span>
+    <span id="usage" class="usage" title="calls · input · output · cache read · cost"></span>
+    <span id="count" class="muted"></span>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="rail">
+    <section class="card intake">
+      <h2>New ticket</h2>
+      <form id="newtask" autocomplete="off">
+        <textarea id="spec" rows="10" placeholder="Paste the ticket requirement here.
+
+You can paste a screenshot straight into this box — the image itself is what gets read, not a description of it."></textarea>
+
+        <div id="drop" class="drop" role="button" tabindex="0"
+             title="Choose images, or drop them here, or press Ctrl+V">
+          <span class="dz"><b>Choose images</b> — or drop them here, or press Ctrl+V<br>
+            <span class="dzsub">PNG, JPEG, GIF or WebP · as many as you need</span></span>
+          <div id="thumbs" class="thumbs"></div>
+        </div>
+        <input id="filepick" type="file" multiple hidden
+               accept="image/png,image/jpeg,image/gif,image/webp">
+
+        <div class="row2">
+          <div><label for="title">Title <span class="opt">optional</span></label>
+            <input id="title" type="text" placeholder="first line"></div>
+          <div class="narrow"><label for="cap">Attempts</label>
+            <input id="cap" type="number" min="1" max="5" value="3"></div>
+        </div>
+
+        <details id="modelpins" class="pins">
+          <summary>Models <span class="opt">the analyst chooses unless you say otherwise</span></summary>
+          <div class="pinrow"><label for="pin-classify">Classify</label><select id="pin-classify"></select></div>
+          <div class="pinrow"><label for="pin-model">Pick model</label><select id="pin-model"></select></div>
+          <div class="pinrow"><label for="pin-work">Do the work</label><select id="pin-work"></select></div>
+          <div class="pinrow"><label for="pin-review">Review</label><select id="pin-review"></select></div>
+          <div class="pinrow"><label for="pin-result">Write result</label><select id="pin-result"></select></div>
+          <p class="muted small">Pinning both the worker and the reviewers skips the model-choosing
+            call entirely. Reviewers are never weaker than the worker — the ledger refuses that.</p>
+        </details>
+
+        <button type="submit" id="create">Run it</button>
+        <p class="hint muted small">It decides the work type, picks the model, does the work,
+          reviews it twice, and retries on a failure. You get the result to copy.</p>
+        <p id="formerr" class="err" hidden></p>
+      </form>
+    </section>
+
+    <section class="card list">
+      <h2>Tickets</h2>
+      <div id="tasklist"><p class="empty">Nothing yet.</p></div>
+    </section>
+  </aside>
+
+  <main id="detail">
+    <div class="placeholder">
+      <p>Paste a requirement to start.</p>
+      <p class="muted small">Nine steps run without you: classify, pick a model, do the work,
+        two independent reviews, retry on failure, then write what you paste.</p>
+    </div>
+  </main>
+</div>
+
+<dialog id="settings" class="modal">
+  <div class="mbody">
+    <h2>Sign in</h2>
+    <p id="authstate" class="authstate"></p>
+
+    <section class="authopt" id="cliopt">
+      <h3>Use the Claude Code login on this PC</h3>
+      <p id="clistate" class="muted small"></p>
+      <label class="pick"><input type="radio" name="prov" value="auto"> Use it when available</label>
+      <label class="pick"><input type="radio" name="prov" value="cli"> Always use it</label>
+      <label class="pick"><input type="radio" name="prov" value="api"> Never — use a key or profile instead</label>
+    </section>
+
+    <section class="authopt">
+      <h3>Sign in with Claude</h3>
+      <p class="muted small">Opens your browser once. The login is stored for this whole PC,
+        so every Anthropic tool here picks it up — nothing is kept inside this app.</p>
+      <div class="row">
+        <input id="profile" type="text" placeholder="profile name (optional)" autocomplete="off" spellcheck="false">
+        <button id="signin" type="button">Sign in</button>
+      </div>
+      <p id="antmissing" class="muted small warn" hidden></p>
+    </section>
+
+    <section class="authopt">
+      <h3>Or paste an API key</h3>
+      <input id="apikey" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <p id="keystate" class="muted small"></p>
+      <div class="row end"><button id="savekey" type="button">Save key</button></div>
+    </section>
+
+    <p class="muted small">Every run spends real credit on whichever account you sign in with.
+      A task that fails review costs roughly double, because the retry re-runs the worker and both reviewers.</p>
+
+    <menu>
+      <button id="signout" class="ghost" type="button">Sign out</button>
+      <button id="closesettings" class="ghost" type="button">Close</button>
+    </menu>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+
+<template id="tpl-detail">
+  <section class="card head">
+    <div class="headrow"><h2 class="ttl"></h2><span class="pill state"></span><button class="del ghost" title="Delete this ticket">Delete</button></div>
+    <div class="facts"></div>
+  </section>
+
+  <section class="card stages">
+    <ol class="stagestrip"></ol>
+    <div class="slots"></div>
+  </section>
+
+  <section class="card result" hidden>
+    <div class="headrow"><h3 class="rlabel"></h3><button class="expand ghost">Full screen</button><button class="copy payload">Copy</button></div>
+    <p class="rhint muted small"></p>
+    <pre class="payloadbox"></pre>
+  </section>
+
+  <section class="card runlog">
+    <div class="headrow">
+      <h3>Activity</h3>
+      <span class="runstatus pill neutral"></span>
+    </div>
+    <p class="runerr err" hidden></p>
+    <div class="logbody"></div>
+    <div class="retrywrap" hidden><button class="retry">Run again</button><button class="stop" hidden>Stop</button></div>
+
+    <div class="addwrap">
+      <label for="addendum">Add an instruction</label>
+      <textarea class="addendum" rows="2"
+        placeholder="Something you forgot, or a correction. Ctrl+Enter to add."></textarea>
+      <div class="addrow">
+        <button class="addbtn ghost">Add to this ticket</button>
+        <span class="addnote muted small"></span>
+      </div>
+      <ul class="addlist"></ul>
+    </div>
+  </section>
+
+  <section class="card pinsrun">
+    <h3>Models for this ticket</h3>
+    <div class="pinsbody"></div>
+    <p class="muted small">A change applies to the next stage to run, and to every retry. The
+      stage running now was already sent its prompt — only <b>Stop</b> ends that.</p>
+  </section>
+
+  <section class="card reviews" hidden>
+    <h3>Reviews</h3><div class="revbody"></div>
+  </section>
+
+  <details class="card notes" hidden>
+    <summary>Worker notes (the evidence the reviewers checked)</summary>
+    <pre class="notesbody"></pre>
+  </details>
+</template>
+
+<div id="finished" class="sheet" hidden>
+  <div class="sheetinner">
+    <header class="sheethead">
+      <div>
+        <p class="eyebrow">Ready to upload</p>
+        <h2 id="fin-title"></h2>
+        <p id="fin-sub" class="muted"></p>
+      </div>
+      <div class="sheetbtns">
+        <button id="fin-copy" class="cta">Copy the text</button>
+        <button id="fin-close" class="ghost">Close</button>
+      </div>
+    </header>
+    <ol id="fin-guide" class="guide"></ol>
+    <pre id="fin-payload" class="sheetpayload"></pre>
+    <p id="fin-foot" class="muted small"></p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

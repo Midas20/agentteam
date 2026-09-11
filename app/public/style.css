@@ -1,0 +1,349 @@
+/* Claude Workflow — same palette as the design docs: cool slate, signal blue,
+   semantic green/amber/red reserved for task state so it never competes with the accent. */
+:root{
+  --ground:#e8eaed; --surface:#fcfdfe; --raised:#f1f3f6; --sunk:#e2e6ea;
+  --ink:#151a21; --muted:#5d6874; --faint:#8b96a3;
+  --line:#c6ced7; --hair:#dde2e8;
+  --accent:#1f4e79; --accent-soft:#e0e9f2; --accent-ink:#ffffff;
+  --ok:#2f6b45; --warn:#8a5a12; --bad:#97341f;
+  --ok-bg:#e2efe7; --warn-bg:#f4ebda; --bad-bg:#f6e4de;
+  --shadow:0 1px 2px rgba(21,26,33,.06), 0 4px 14px rgba(21,26,33,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151a; --surface:#191e25; --raised:#20262e; --sunk:#0d1116;
+    --ink:#e3e8ed; --muted:#96a2af; --faint:#6d7986;
+    --line:#333c46; --hair:#262d36;
+    --accent:#7fb2e0; --accent-soft:#1b2c3d; --accent-ink:#0d1116;
+    --ok:#6fb78c; --warn:#d3a45f; --bad:#e08e79;
+    --ok-bg:#17281e; --warn-bg:#2a2214; --bad-bg:#2d1c17;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151a; --surface:#191e25; --raised:#20262e; --sunk:#0d1116;
+  --ink:#e3e8ed; --muted:#96a2af; --faint:#6d7986;
+  --line:#333c46; --hair:#262d36;
+  --accent:#7fb2e0; --accent-soft:#1b2c3d; --accent-ink:#0d1116;
+  --ok:#6fb78c; --warn:#d3a45f; --bad:#e08e79;
+  --ok-bg:#17281e; --warn-bg:#2a2214; --bad-bg:#2d1c17;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:Archivo,"Helvetica Neue",system-ui,sans-serif; font-size:14px; line-height:1.5;
+  display:flex; flex-direction:column;
+}
+h1,h2,h3{margin:0; font-weight:700; letter-spacing:-.01em}
+.mono,pre,code{font-family:"JetBrains Mono",ui-monospace,monospace}
+.muted{color:var(--muted)} .small{font-size:12.5px} .opt{color:var(--faint);font-weight:400}
+.err{color:var(--bad);font-size:12.5px;margin:8px 0 0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* ── bar ─────────────────────────────────────────────────────── */
+.bar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:10px 18px; background:var(--surface); border-bottom:1px solid var(--line); flex:0 0 auto;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.bar h1{font-size:15px;letter-spacing:.01em}
+.barmeta{display:flex;align-items:center;gap:12px;font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+.dot.on{background:var(--ok);box-shadow:0 0 0 3px var(--ok-bg)}
+
+/* ── layout ──────────────────────────────────────────────────── */
+.app{flex:1 1 auto;display:grid;grid-template-columns:390px minmax(0,1fr);gap:0;min-height:0}
+.rail{border-right:1px solid var(--line);background:var(--sunk);overflow-y:auto;
+  padding:14px;display:flex;flex-direction:column;gap:14px}
+main{overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{border-right:none;border-bottom:1px solid var(--line)}
+}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:14px 16px;box-shadow:var(--shadow)}
+.card > h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  margin-bottom:12px;font-family:"JetBrains Mono",monospace;font-weight:700}
+.card > h3{font-size:14.5px;margin-bottom:4px}
+.placeholder{margin:auto;text-align:center;max-width:46ch;color:var(--muted)}
+.placeholder code{background:var(--raised);border:1px solid var(--hair);border-radius:3px;padding:1px 5px;font-size:12px}
+
+/* ── form ────────────────────────────────────────────────────── */
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 5px}
+textarea,input[type=text],input[type=number],select{
+  width:100%;font-family:inherit;font-size:13px;color:var(--ink);background:var(--raised);
+  border:1px solid var(--line);border-radius:4px;padding:8px 10px;
+}
+textarea{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.55;resize:vertical;min-height:120px}
+textarea::placeholder{color:var(--faint)}
+select{cursor:pointer}
+#newtask > *{margin-bottom:12px}
+#newtask > *:last-child{margin-bottom:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2 .narrow{max-width:90px}
+button{font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+  border:1px solid var(--line);background:var(--raised);color:var(--ink);
+  border-radius:4px;padding:7px 13px}
+button:hover{border-color:var(--accent);color:var(--accent)}
+#create{width:100%;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);
+  padding:9px;font-size:13px}
+#create:hover{filter:brightness(1.1);color:var(--accent-ink)}
+#create:disabled{opacity:.55;cursor:default;filter:none}
+.link{border:none;background:none;color:var(--accent);padding:2px 4px;text-decoration:underline}
+
+.drop{border:1.5px dashed var(--line);border-radius:4px;padding:12px;text-align:center;
+  color:var(--faint);font-size:12px;background:var(--raised)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.drop img{max-height:110px;max-width:100%;border-radius:3px;display:block;margin:0 auto 6px}
+
+/* ── task list ───────────────────────────────────────────────── */
+.list{padding:14px 10px 10px}
+#tasklist{display:flex;flex-direction:column;gap:5px}
+.empty{color:var(--faint);font-size:12.5px;margin:0;padding:0 6px}
+.trow{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;
+  padding:8px 10px;border:1px solid transparent;border-radius:4px;cursor:pointer;background:none;
+  text-align:left;width:100%;font-family:inherit}
+.trow:hover{background:var(--raised);border-color:var(--hair);color:var(--ink)}
+.trow.sel{background:var(--accent-soft);border-color:var(--accent)}
+.trow .t{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow .m{grid-column:1/-1;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);
+  display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── pills ───────────────────────────────────────────────────── */
+.pill{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 8px;border-radius:3px;border:1px solid;white-space:nowrap}
+.pill.neutral{color:var(--muted);border-color:var(--line);background:var(--surface)}
+.pill.go{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.pill.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-bg)}
+.pill.warn{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.pill.bad{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+
+/* ── detail ──────────────────────────────────────────────────── */
+.headrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.head h2{font-size:17px}
+.facts{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;
+  font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:500}
+
+.stagestrip{list-style:none;display:flex;margin:0;padding:0;gap:4px}
+.stagestrip li{flex:1;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--faint);padding:7px 4px 6px;
+  border-top:3px solid var(--hair);font-family:"JetBrains Mono",monospace}
+.stagestrip li.done{color:var(--muted);border-top-color:var(--line)}
+.stagestrip li.now{color:var(--accent);border-top-color:var(--accent)}
+.stagestrip li.bad{color:var(--bad);border-top-color:var(--bad)}
+.slots{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.slot{font-family:"JetBrains Mono",monospace;font-size:11px;border:1px solid var(--line);
+  border-radius:4px;padding:5px 9px;background:var(--raised);color:var(--muted)}
+.slot.ok{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+.slot.bad{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}
+
+.sendto{margin-top:10px;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.sendhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 11px;background:var(--raised);border-bottom:1px solid var(--line)}
+.sendhead .sess{font-size:11.5px;font-weight:700;color:var(--accent)}
+.sendhead .sess::before{content:"→ ";color:var(--faint)}
+pre{margin:0;font-size:11.5px;line-height:1.6;padding:12px 13px;overflow-x:auto;
+  background:var(--surface);color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.envelope{max-height:280px;overflow-y:auto}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+
+/* ── result ──────────────────────────────────────────────────── */
+.result{border-color:var(--ok);border-width:1.5px}
+.result.escal{border-color:var(--warn)}
+.result .rlabel{color:var(--ok)}
+.result.escal .rlabel{color:var(--warn)}
+.payloadbox{background:var(--sunk);border:1px solid var(--line);border-radius:5px;margin-top:10px;
+  font-size:12.5px;line-height:1.66;max-height:60vh;overflow:auto}
+.copy{border-color:var(--accent);color:var(--accent)}
+.copy.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.payload{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);padding:8px 16px}
+.payload:hover{filter:brightness(1.1);color:var(--accent-ink)}
+.payload.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);filter:none}
+
+.revbody{display:flex;flex-direction:column;gap:10px}
+.rev{border-left:3px solid var(--line);padding:2px 0 2px 11px}
+.rev.ok{border-left-color:var(--ok)} .rev.bad{border-left-color:var(--bad)}
+.rev h4{margin:0 0 3px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.07em;
+  text-transform:uppercase}
+.rev.ok h4{color:var(--ok)} .rev.bad h4{color:var(--bad)}
+.rev p{margin:0;font-size:12.5px;color:var(--ink);white-space:pre-wrap}
+
+.hist{padding:10px 16px}
+.hist summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:11px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.histbody{margin-top:10px;font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1.75;color:var(--muted)}
+.histbody div{display:flex;gap:10px}
+.histbody .w{color:var(--ink);min-width:190px}
+
+/* ── toast ───────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--ground);font-size:12.5px;font-weight:600;
+  padding:9px 18px;border-radius:20px;box-shadow:var(--shadow);z-index:50}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ── run log (app only) ──────────────────────────────────────── */
+.hint{margin:10px 0 0}
+/* The 8px side padding is what the stage rows' negative margins bleed into. Without it
+   they hang 8px past the edge and the log grows a horizontal scrollbar it never needs. */
+.logbody{margin-top:10px;padding:0 8px;display:flex;flex-direction:column;gap:2px;
+  max-height:44vh;overflow-y:auto;overflow-x:hidden;
+  font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.55}
+/* Three columns for three children: timestamp, stage, text. It was two, and the text
+   then wrapped onto a second row into the 78px timestamp track — a log whose every
+   line broke after two words. minmax(0,1fr) so a long unbroken token widens nothing. */
+.ev{display:grid;grid-template-columns:58px 62px minmax(0,1fr);gap:4px 8px;
+  padding:3px 0;border-bottom:1px solid var(--hair)}
+.ev:last-child{border-bottom:none}
+.ev .s{color:var(--faint);text-transform:uppercase;font-size:9.5px;letter-spacing:.08em;padding-top:3px}
+.ev .x{color:var(--muted);white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;min-width:0}
+.ev.stage{background:var(--accent-soft);margin:6px -8px 2px;padding:5px 8px;border-radius:3px;border-bottom:none}
+.ev.stage .s,.ev.stage .x{color:var(--accent);font-weight:700}
+.ev.done .x{color:var(--ok)}
+.ev.error .x{color:var(--bad);font-weight:700}
+.ev.tool .x{color:var(--ink);opacity:.85}
+.ev.tool .x::before{content:"→ ";color:var(--faint)}
+.ev.file .x::before{content:"▪ ";color:var(--faint)}
+.ev.think .x{font-style:italic;opacity:.75;max-height:5.4em;overflow:hidden}
+.runstatus.running{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.retrywrap{margin-top:12px}
+.notes summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);font-weight:700}
+.notesbody{margin-top:10px;background:var(--sunk);border:1px solid var(--line);border-radius:5px;
+  max-height:50vh;overflow:auto;font-size:11.5px}
+.notes{padding:12px 16px}
+
+/* ── settings dialog ─────────────────────────────────────────── */
+.ghost{background:transparent;border-color:var(--line);color:var(--muted);padding:4px 11px;font-size:11.5px}
+.ghost:hover{color:var(--accent);border-color:var(--accent)}
+.modal{border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);
+  padding:0;box-shadow:0 10px 40px rgba(0,0,0,.28);max-width:440px;width:calc(100% - 40px)}
+.modal::backdrop{background:rgba(10,14,18,.45)}
+.modal form{padding:20px 22px;display:flex;flex-direction:column;gap:10px}
+.modal h2{font-size:16px;margin:0 0 2px}
+.modal input{font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.modal menu{display:flex;justify-content:flex-end;gap:8px;margin:6px 0 0;padding:0}
+#savekey{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#savekey:hover{filter:brightness(1.1);color:var(--accent-ink)}
+#keystate.good{color:var(--ok)} #keystate.warn{color:var(--warn)}
+.modal .mbody{padding:20px 22px;display:flex;flex-direction:column;gap:14px;max-height:80vh;overflow-y:auto}
+.modal h3{font-size:13px;margin:0 0 4px}
+.authstate{margin:0;padding:8px 11px;border-radius:4px;font-size:12.5px;border:1px solid var(--line);background:var(--raised)}
+.authstate.good{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.authstate.warn{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.authopt{border-top:1px solid var(--hair);padding-top:12px;display:flex;flex-direction:column;gap:7px}
+.authopt .row{display:flex;gap:8px}
+.authopt .row.end{justify-content:flex-end}
+.authopt .row input{flex:1}
+#signin{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);white-space:nowrap}
+#signin:hover{filter:brightness(1.1);color:var(--accent-ink)}
+#signin:disabled{opacity:.5;cursor:default;filter:none}
+.small.warn{color:var(--warn)}
+.drop.has{padding:8px;border-style:solid;border-color:var(--line)}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.thumb{position:relative;margin:0;line-height:0}
+.thumb img{max-height:74px;max-width:104px;border-radius:3px;border:1px solid var(--line);display:block}
+.thumb .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;padding:0;border-radius:50%;
+  background:var(--bad);color:#fff;border-color:var(--bad);font-size:13px;line-height:1;cursor:pointer}
+.thumb .rm:hover{filter:brightness(1.15);color:#fff}
+
+/* The sign-in affordance. Until there are credentials nothing in the app can run, so the
+   way in is an accent button that says what it does - not the word "Settings", which
+   gives no hint that it is the only door. */
+.cta{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);
+  padding:5px 13px;font-size:11.5px}
+.cta:hover{filter:brightness(1.12);color:var(--accent-ink);border-color:var(--accent)}
+.signin-call{margin-top:18px;padding:16px 18px;border:1px solid var(--line);border-radius:5px;
+  background:var(--accent-soft);max-width:430px}
+.signin-call h3{margin:0 0 6px;font-size:13.5px;color:var(--ink)}
+.signin-call p{margin:0 0 12px}
+.ver{font-family:var(--mono,ui-monospace,monospace);font-size:10.5px;color:var(--faint);
+  letter-spacing:.02em;padding-top:3px}
+.drop{cursor:pointer}
+.drop:hover{border-color:var(--accent);color:var(--accent)}
+.drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dz b{color:var(--accent)}
+.dzsub{font-size:11px;color:var(--faint)}
+.usage{font-family:var(--mono,ui-monospace,monospace);font-size:11px;color:var(--muted);
+  letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pick{display:block;font-size:12px;color:var(--ink);margin:3px 0;cursor:pointer}
+.pick input{margin-right:7px}
+.pick input:disabled + *,.pick:has(input:disabled){color:var(--faint);cursor:default}
+
+/* ── run-in-progress affordances ─────────────────────────────────
+   A ticket takes ten minutes or more. Everything here exists to answer one question at a
+   glance: is this thing still alive, and how long has it been going? */
+.spin{display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;
+  background:var(--accent);vertical-align:middle;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none;opacity:.9}}
+.trow.live{border-color:var(--accent-soft)}
+.clock{font-variant-numeric:tabular-nums}
+
+/* Activity log: timestamp, stage, message. Reasoning is clamped to one line and opens on
+   click, so tool calls and stage changes stay scannable during a long run. */
+.ev .ts{color:var(--faint);font-size:10.5px;font-variant-numeric:tabular-nums;padding-top:3px}
+.ev.expandable{cursor:pointer}
+.ev.expandable:hover{background:var(--sunk)}
+.ev .full{grid-column:1/-1;overflow-wrap:anywhere;white-space:pre-wrap;margin-top:5px;padding:7px 9px;background:var(--sunk);
+  border-radius:3px;font-size:11.5px;line-height:1.55;max-height:340px;overflow:auto}
+.ev.open{background:var(--sunk)}
+.stop{background:var(--bad);color:#fff;border-color:var(--bad)}
+.stop:hover{filter:brightness(1.12);color:#fff;border-color:var(--bad)}
+.pill.cancelled{background:var(--warn-bg);color:var(--warn)}
+.head .headrow{display:flex;align-items:center;gap:10px}
+.head .headrow .ttl{flex:1;min-width:0}
+.del{margin-left:auto}
+.del:hover{color:var(--bad);border-color:var(--bad)}
+
+/* ── model pins and mid-run instructions ─────────────────────── */
+.pins{margin:2px 0 10px;border:1px solid var(--line);border-radius:5px;background:var(--sunk)}
+.pins summary{cursor:pointer;padding:7px 10px;font-size:12px;font-weight:600;user-select:none}
+.pins summary::marker{color:var(--faint)}
+.pins > div,.pins > p{padding:0 10px}
+.pins > p{padding-bottom:9px;margin-top:7px}
+.pinrow{display:grid;grid-template-columns:1fr 108px;gap:8px;align-items:center;padding:3px 0}
+.pinrow label{font-size:12px;color:var(--muted);margin:0}
+.pinrow select{width:100%;font-size:12px;padding:3px 5px;border:1px solid var(--line);
+  border-radius:4px;background:var(--surface);color:var(--ink)}
+.pinsrun .pinsbody{display:grid;gap:2px;margin-bottom:8px}
+
+.addwrap{margin-top:12px;padding-top:11px;border-top:1px solid var(--hair)}
+.addwrap label{display:block;font-size:12px;font-weight:600;margin-bottom:5px}
+.addendum{width:100%;font-size:12.5px;padding:7px 9px;border:1px solid var(--line);
+  border-radius:5px;background:var(--surface);color:var(--ink);resize:vertical;font-family:inherit}
+.addrow{display:flex;align-items:center;gap:10px;margin-top:7px;flex-wrap:wrap}
+.addlist{list-style:none;padding:0;margin:9px 0 0;display:grid;gap:5px}
+.addlist li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;font-size:12px;
+  padding:6px 8px;background:var(--sunk);border-radius:4px}
+.addlist .n{color:var(--faint);font-variant-numeric:tabular-nums}
+.addlist .tx{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted)}
+
+/* ── the finished sheet ───────────────────────────────────────── */
+.sheet{position:fixed;inset:0;z-index:120;background:rgba(16,20,24,.55);
+  backdrop-filter:blur(3px);display:flex;align-items:stretch;justify-content:center;padding:22px}
+.sheetinner{background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  box-shadow:0 18px 60px rgba(0,0,0,.32);width:100%;max-width:1000px;display:flex;
+  flex-direction:column;overflow:hidden}
+.sheethead{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sheethead h2{margin:2px 0 4px;font-size:21px;line-height:1.2}
+.sheethead .eyebrow{margin:0;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ok);font-weight:700}
+.sheet.bad .sheethead .eyebrow{color:var(--bad)}
+.sheethead p{margin:0}
+.sheetbtns{display:flex;gap:8px;flex-shrink:0}
+.guide{margin:0;padding:16px 24px 14px 46px;display:grid;gap:7px;background:var(--sunk);
+  border-bottom:1px solid var(--line);font-size:13.5px}
+.guide li{padding-left:3px}
+.sheetpayload{flex:1;margin:0;overflow:auto;padding:18px 24px;font-size:13px;line-height:1.62;
+  white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface);color:var(--ink)}
+#fin-foot{margin:0;padding:11px 24px 15px;border-top:1px solid var(--line)}
+@media (max-width:700px){ .sheet{padding:0} .sheetinner{border-radius:0;border:0} }
+/* .sheet sets display:flex, which outranks the browser's default rule for [hidden].
+   Without this the overlay is visible even while the page believes it is closed. */
+.sheet[hidden]{display:none}
