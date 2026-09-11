@@ -1,0 +1,27 @@
+# Dependencies and build output. dist/ alone is 760 MB of packaged executables.
+node_modules/
+dist/
+
+# Runtime data. The ledger, the workspaces, the uploads and the model-call register are
+# what this app produces while running; none of it belongs to the source.
+tasks/
+workspace/
+running.json
+.uploads/
+.inputs/
+.scratch/
+.tmp/
+usage.json
+
+# Test scratch directories, created beside the source by the suites that need a data dir.
+.orphan-test/
+.cancel-test/
+.inputs-test/
+.sweep-probe/
+.reach-probe/
+.orphan-probe/
+.testrun*/
+
+# Local settings, which can hold an API key.
+settings.json
+*.log
