@@ -10,9 +10,14 @@ import { execFile } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classify, pickModel, doWork, review, writePayload } from './provider.mjs';
+import { classify, doWork, review, writePayload } from './provider.mjs';
 import { modelFor, specWith, read as readInputs } from './inputs.mjs';
 import { plainText, countMarkdown } from './plain.mjs';
+
+// The model the worker and the reviewers run on unless the person pins something else.
+// Not a default to be negotiated down: these are the stages that produce and judge the
+// answer, and a cheaper model here is a cheaper answer.
+const WORK_FLOOR = 'opus';
 import { taskContext } from './usage.mjs';
 import { killTask } from './cli.mjs';
 
@@ -129,24 +134,28 @@ async function runTaskInner({ id }) {
           t = readTask(id);
           break;
         }
-        // A stage pinned to a model is not a hint, it is an instruction. If both the
-        // worker and the reviewers are pinned there is nothing left for the analyst to
-        // decide, so do not pay for a call that cannot change the outcome.
+        // The two stages that decide whether the answer is any good — doing the work and
+        // reviewing it — always get the strongest model. There used to be an analyst call
+        // here that weighed the requirement and sometimes chose a cheaper one; measured
+        // across twelve real runs, the one ticket it put on a weaker worker is also the
+        // shallowest result the pipeline produced. Saving a few cents on the stage that
+        // determines the quality of everything downstream is a bad trade, and the analyst
+        // call itself cost a round trip to reach a conclusion that is now fixed.
+        //
+        // An explicit pin still wins. Choosing a model for a stage yourself is a decision,
+        // not a suggestion, and the app does not overrule it — it just never picks low on
+        // your behalf.
         const pinWork = modelFor(id, 'work'), pinRev = modelFor(id, 'review');
-        let m;
-        if (pinWork && pinRev) {
-          m = { work: pinWork, review: pinRev, why: 'Chosen by you, not by the analyst.' };
-          emit({ level: 'info', stage: 'model', text: `Pinned by you — work ${pinWork} · review ${pinRev}` });
-        } else {
-          emit({ level: 'stage', stage: 'model', text: 'Choosing the model' });
-          m = await pickModel({
-            spec: specWith(id, t.spec), attachments: t.attachments, kind: t.kind, output_mode: t.output_mode,
-            attempt: t.attempt, cap: t.cap, lastDefects: t.state === 'failed' ? t.review_notes : '',
-            model: modelFor(id, 'model') || undefined, onEvent: emit,
-          });
-          if (pinWork) { m.work = pinWork; m.why += ' Worker pinned by you.'; }
-          if (pinRev)  { m.review = pinRev; m.why += ' Reviewers pinned by you.'; }
-        }
+        const m = {
+          work: pinWork || WORK_FLOOR,
+          review: pinRev || WORK_FLOOR,
+          why: pinWork || pinRev
+            ? `Chosen by you${pinWork && pinRev ? '' : `, with ${pinWork ? 'the reviewers' : 'the worker'} on ${WORK_FLOOR}`}.`
+            : `Work and review always run on ${WORK_FLOOR}; these two stages decide whether the answer is any good.`,
+        };
+        emit({ level: 'info', stage: 'model', text:
+          pinWork || pinRev ? `Pinned by you — work ${m.work} · review ${m.review}`
+                            : `work ${m.work} · review ${m.review} — the strongest model, always` });
         await ledger(['model', id, '--work', m.work, '--review', m.review, '--why', m.why.slice(0, 2000), '--by', 'app:analyst'])
           .catch(async (e) => {
             // The ledger refuses a reviewer weaker than the worker. Raise the reviewers

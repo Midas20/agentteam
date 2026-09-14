@@ -127,15 +127,20 @@ Two things worth knowing:
   Anything else is refused at the point you drop it, with a message, rather than being
   attached and then quietly skipped on the way to the model.
 
-**You can choose the model for each step.** By default an analyst stage reads the
-requirement and picks one, which is usually right. Open **Models** in the new-ticket form to
-pin any of the five steps — classify, pick model, do the work, review, write result — to
-`opus`, `sonnet`, `haiku` or `fable`. `Auto` hands that step back to the analyst. Pinning
-*both* the worker and the reviewers skips the analyst call altogether, because there is
-nothing left for it to decide and no reason to pay for it. Reviewers are still never weaker
-than the worker; the ledger refuses that and raises them instead. A running ticket has the
-same five controls under **Models for this ticket**, and a change there applies to the next
-step and to every retry.
+**Work and review always run on opus.** These are the two stages that produce the answer
+and judge it, and a cheaper model there is a cheaper answer. There used to be an analyst
+stage that weighed the requirement and sometimes chose a weaker worker; across twelve
+measured runs the one ticket it put on a weaker model produced the shallowest result, so
+that call is gone. Nothing is picked low on your behalf, and the round trip it took to
+decide is saved as well.
+
+**You can still choose the model for each step.** Open **Models** in the new-ticket form to
+pin classify, do the work, review or write result to `opus`, `sonnet`, `haiku` or `fable`.
+A pin is a decision, not a suggestion — the app honours it even when it is lower than the
+default, which is what makes a cheap dry run possible. Leave a step alone and it takes its
+own default: opus for work and review. A running ticket has the same controls under
+**Models for this ticket**, and a change applies to the next step and to every retry.
+Reviewers are still never weaker than the worker; the ledger refuses that.
 
 **You can add an instruction while it is running.** Under the activity log there is a box
 for something you forgot or want to correct. It is added to the requirement, marked as
@@ -289,8 +294,13 @@ because that single failure disables everything downstream of it.
 
 ## Known limits
 
-- **First launch takes ~30 seconds** for the portable build: it extracts itself to a temp
-  directory each time. The installed build starts immediately.
+- **The portable build takes about a minute to start, every single time.** Measured on this
+  machine: 51 to 62 seconds across three consecutive launches, against **0.7 seconds** for
+  the installed build. It unpacks roughly 100 MB to a temporary directory on each launch,
+  and setting a fixed unpack directory did not make it reuse that work — it was tried and it
+  did not help. **If startup time matters, use the installer.** The splash screen shows
+  progress once the app is running, but it cannot cover the unpacking: that finishes before
+  any of the app's own code exists, so there is nothing to draw with.
 - **`ELECTRON_RUN_AS_NODE`** in the environment makes the Electron binary behave as plain
   Node and the app will not start. It prints a line saying exactly that. Some parent
   processes (other Electron apps, some terminals) leak it.

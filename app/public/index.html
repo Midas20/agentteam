@@ -51,12 +51,12 @@ You can paste a screenshot straight into this box — the image itself is what g
         <details id="modelpins" class="pins">
           <summary>Models <span class="opt">the analyst chooses unless you say otherwise</span></summary>
           <div class="pinrow"><label for="pin-classify">Classify</label><select id="pin-classify"></select></div>
-          <div class="pinrow"><label for="pin-model">Pick model</label><select id="pin-model"></select></div>
           <div class="pinrow"><label for="pin-work">Do the work</label><select id="pin-work"></select></div>
           <div class="pinrow"><label for="pin-review">Review</label><select id="pin-review"></select></div>
           <div class="pinrow"><label for="pin-result">Write result</label><select id="pin-result"></select></div>
-          <p class="muted small">Pinning both the worker and the reviewers skips the model-choosing
-            call entirely. Reviewers are never weaker than the worker — the ledger refuses that.</p>
+          <p class="muted small">Work and review run on opus unless you pin something else —
+            they decide whether the answer is any good. Reviewers are never weaker than the
+            worker; the ledger refuses that.</p>
         </details>
 
         <button type="submit" id="create">Run it</button>

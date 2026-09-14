@@ -16,11 +16,15 @@ const STAGES = ['Classify', 'Model', 'Work', 'Review', 'Verdict', 'Result'];
 
 // The five stages a model can be pinned to, in the order they run, with the label the
 // person sees. 'Verdict' is not here: it is bookkeeping, not a model call.
-const PIN_STAGES = [['classify', 'Classify'], ['model', 'Pick model'], ['work', 'Do the work'],
+const PIN_STAGES = [['classify', 'Classify'], ['work', 'Do the work'],
                     ['review', 'Review'], ['result', 'Write result']];
 const PIN_MODELS = ['auto', 'opus', 'sonnet', 'haiku', 'fable'];
-const modelOptions = (chosen) => PIN_MODELS.map(m =>
-  `<option value="${m}"${m === (chosen || 'auto') ? ' selected' : ''}>${m === 'auto' ? 'Auto' : m}</option>`).join('');
+// Work and review always run on opus unless pinned, so the default option says so rather
+// than saying "Auto" and leaving the person to wonder what it resolved to.
+const AUTO_IS = { work: 'opus (default)', review: 'opus (default)' };
+const modelOptions = (chosen, stage) => PIN_MODELS.map(m =>
+  `<option value="${m}"${m === (chosen || 'auto') ? ' selected' : ''}>${
+    m === 'auto' ? (AUTO_IS[stage] || 'Auto') : m}</option>`).join('');
 const stageIndex = (t) => ({
   open: 0, classified: t.model ? 2 : 1, assigned: 2, built: 3, reviewing: 3,
   passed: 4, failed: 4, escalated: 4, delivered: 5,
@@ -437,7 +441,7 @@ function wireIntake() {
   // Fill the five selects in the new-ticket form once, then read them back on submit.
   for (const [stage] of PIN_STAGES) {
     const sel = $('#pin-' + stage);
-    if (sel && !sel.options.length) sel.innerHTML = modelOptions('auto');
+    if (sel && !sel.options.length) sel.innerHTML = modelOptions('auto', stage);
   }
 
   $('#newtask').onsubmit = async (ev) => {
@@ -584,7 +588,7 @@ function wireTicketControls(node, t) {
   if (body) {
     body.innerHTML = PIN_STAGES.map(([stage, label]) =>
       `<div class="pinrow"><label>${label}</label>` +
-      `<select data-stage="${stage}">${modelOptions(pins[stage])}</select></div>`).join('');
+      `<select data-stage="${stage}">${modelOptions(pins[stage], stage)}</select></div>`).join('');
     for (const sel of body.querySelectorAll('select')) {
       sel.onchange = async () => {
         try {

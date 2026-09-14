@@ -16,10 +16,16 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIR = join(process.env.RELAY_DATA_DIR || HERE, '.inputs');
 
-/** Every model a stage may be pinned to, plus the default of letting the analyst choose. */
+/** Every model a stage may be pinned to, plus 'auto' for the stage's own default. */
 export const MODELS = ['auto', 'opus', 'sonnet', 'haiku', 'fable'];
-/** The stages a model can be chosen for, in the order they run. */
-export const STAGES = ['classify', 'model', 'work', 'review', 'result'];
+/**
+ * The stages a model can be chosen for, in the order they run.
+ *
+ * 'model' is not among them any more. There used to be an analyst stage that picked
+ * the worker and reviewer models; work and review now always run on the strongest
+ * model, so that call had nothing left to decide and was removed.
+ */
+export const STAGES = ['classify', 'work', 'review', 'result'];
 
 const file = (id) => join(DIR, `${id}.json`);
 const EMPTY = { models: {}, addenda: [] };
