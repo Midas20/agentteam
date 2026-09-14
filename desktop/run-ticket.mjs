@@ -33,7 +33,7 @@ for (let i = 0; i < 900; i++) {
   }
   if (t?.state === 'delivered') {
     say(`\nDELIVERED in ${Math.round((Date.now() - t0) / 1000)}s  kind=${t.kind} mode=${t.output_mode} work=${t.model?.work} review=${t.model?.review} attempts=${t.attempt}/${t.cap}`);
-    say(`reviews: ` + ['a', 'b'].map(k => `${k}=${t.reviews[k]?.result || '-'}`).join(' '));
+    say(`reviews: ` + (t.review_slots || ['a','b']).map(k => `${k}=${t.reviews[k]?.result || '-'}`).join(' '));
     say(`\n--- payload (${(t.payload || '').length} chars) ---\n${(t.payload || '').slice(0, 2200)}`);
     const u = (await (await fetch(`${base}/api/usage`)).json());
     say(`\nusage so far: calls=${u.calls} in=${u.input} out=${u.output} cacheWrite=${u.cacheWrite} cost=$${u.costUsd.toFixed(2)}`);

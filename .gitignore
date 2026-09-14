@@ -28,3 +28,8 @@ settings.json
 
 # The default instructions that apply to every ticket.
 instructions.md
+
+# The agent roster: edited role prompts and the reviewer count. Your configuration, not the app's.
+agents.json
+.agents-test/
+.standing-test/

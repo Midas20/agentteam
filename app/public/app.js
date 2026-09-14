@@ -217,9 +217,10 @@ function renderDetail() {
   const idx = stageIndex(t), broken = t.state === 'failed' || t.state === 'escalated';
   $('.stagestrip', node).innerHTML = STAGES.map((s, i) =>
     `<li class="${i < idx ? 'done' : i === idx ? (broken ? 'bad' : 'now') : ''}">${s}</li>`).join('');
-  $('.slots', node).innerHTML = ['a','b'].map(s => {
-    const r = t.reviews[s];
-    return `<span class="slot ${!r ? '' : r.result === 'pass' ? 'ok' : 'bad'}">review ${s}: ${r ? r.result : 'running'}</span>`;
+  $('.slots', node).innerHTML = reviewersOf(t).map(({ slot, axis }) => {
+    const r = t.reviews[slot];
+    return `<span class="slot ${!r ? '' : r.result === 'pass' ? 'ok' : 'bad'}">${
+      esc(axis || `review ${slot}`)}: ${r ? r.result : 'running'}</span>`;
   }).join('');
 
   // result
@@ -242,13 +243,13 @@ function renderDetail() {
   }
 
   // reviews
-  if (t.reviews.a || t.reviews.b) {
+  const judged = reviewersOf(t).filter(({ slot }) => t.reviews[slot]);
+  if (judged.length) {
     $('.reviews', node).hidden = false;
-    $('.revbody', node).innerHTML = ['a','b'].filter(s => t.reviews[s]).map(s => {
-      const r = t.reviews[s];
-      const axis = s === 'a' ? 'compliance' : 'correctness';
+    $('.revbody', node).innerHTML = judged.map(({ slot, label, axis }) => {
+      const r = t.reviews[slot];
       return `<div class="rev ${r.result === 'pass' ? 'ok' : 'bad'}">
-        <h4>review ${s} · ${axis} — ${r.result}</h4><p>${esc(r.notes)}</p></div>`;
+        <h4>${esc(label)} · ${esc(axis || slot)} — ${r.result}</h4><p>${esc(r.notes)}</p></div>`;
     }).join('');
   }
 
@@ -525,7 +526,22 @@ function paintAuth() {
 
 function wireSettings() {
   const dlg = $('#settings');
-  const open = () => { if (!dlg.open) dlg.showModal(); paintAuth(); };
+  let pane = 'auth';
+  const showPane = (name) => {
+    pane = name;
+    $$('#settabs button').forEach(b => b.classList.toggle('on', b.dataset.pane === name));
+    $$('#settings .pane').forEach(p => { p.hidden = p.dataset.pane !== name; });
+  };
+  $$('#settabs button').forEach(b => { b.onclick = () => showPane(b.dataset.pane); });
+
+  const open = () => {
+    if (!dlg.open) dlg.showModal();
+    // Nothing works until this app can reach Claude, so an unsigned-in app opens on the
+    // one pane that fixes that, whatever was being looked at last time.
+    showPane(STATE.env?.credentials ? pane : 'auth');
+    paintAuth();
+    loadRoster();
+  };
 
   $('#opensettings').onclick  = open;
   $('#closesettings').onclick = () => dlg.close();
@@ -579,6 +595,7 @@ function wireSettings() {
 wireIntake();
 wireSettings();
 wireSheet();
+wireRoster();
 connect();
 
 
@@ -672,6 +689,34 @@ function notifyDone(t, ok) {
   toast(ok ? 'Done — ready to upload' : 'Could not complete');
 }
 
+// What the pipeline read the requirement as. Said in words, not in the internal names:
+// "answer / paste" means nothing to someone reading their own result.
+const KIND_SAYS = {
+  answer:  'an evaluation to answer — selections plus a written explanation',
+  repo:    'a repository to find, and to prove is the right one',
+  project: 'something to build to a specification',
+  prompt:  'prompts to write that are meant to make a model fail',
+};
+const MODE_SAYS = {
+  paste: 'text you paste into the form, needing no editing',
+  guide: 'steps you carry out yourself, each with a checkpoint',
+};
+
+/**
+ * Who judged this ticket.
+ *
+ * The roster is recorded on the ticket when it is assigned, so a ticket judged by three
+ * reviewers still says three after the setting is turned back down to two. The names and
+ * axes come from the live configuration, because those are labels for a slot rather than
+ * facts about the run — renaming Reviewer B does not change who reviewed what.
+ */
+function reviewersOf(t) {
+  const slots = (Array.isArray(t.review_slots) && t.review_slots.length >= 2) ? t.review_slots : ['a', 'b'];
+  const known = STATE.env?.agents?.reviewers || [];
+  return slots.map(slot => known.find(r => r.slot === slot)
+    || { slot, label: `Reviewer ${slot.toUpperCase()}`, axis: '', blurb: '' });
+}
+
 /** The steps, which differ by what the person is actually being handed. */
 function guideFor(t, ok) {
   if (!ok) return [
@@ -693,23 +738,89 @@ function guideFor(t, ok) {
   ];
 }
 
+/**
+ * The sheet, in the order the question actually gets asked.
+ *
+ * It used to open on the steps for uploading, and the text. That is the last thing you
+ * need and the first thing you saw, with no way to tell from the screen what the thing
+ * had been checked against — you had to trust it, or go and read the log. So:
+ *
+ *   1. what was asked, and the method it was going to be judged by,
+ *   2. how it actually went against that method, reviewer by reviewer,
+ *   3. only then, what to submit and how.
+ *
+ * One and two are the argument. Three is the conclusion, and a conclusion read before its
+ * argument is just an assertion.
+ */
 function openSheet(t) {
   const sheet = $('#finished');
   if (!sheet || !t) return;
   const ok = !(t.history || []).some(h => h.to === 'escalated');
   const payload = t.payload || '';
+  const revs = reviewersOf(t);
+  const money = t.usage ? ` · $${t.usage.costUsd.toFixed(2)}` : '';
+
+  $('#fin-eyebrow').textContent = ok ? 'Ready to upload' : 'Nothing to upload';
   $('#fin-title').textContent = t.title;
   $('#fin-sub').textContent = ok
-    ? `${payload.length.toLocaleString()} characters, plain text${t.usage ? ` · $${t.usage.costUsd.toFixed(2)}` : ''}`
-    : `Stopped after ${t.attempt} of ${t.cap} attempts${t.usage ? ` · $${t.usage.costUsd.toFixed(2)}` : ''}`;
-  $('#fin-guide').innerHTML = guideFor(t, ok).map(s => `<li>${esc(s)}</li>`).join('');
+    ? `${payload.length.toLocaleString()} characters, plain text${money}`
+    : `Stopped after ${t.attempt} of ${t.cap} attempts${money}`;
+
+  // ── 1. what was asked, and how it was going to be judged ───────
+  $('#fin-spec').textContent = (t.spec || '').trim()
+    || '(the requirement was an image — it is on the ticket)';
+  $('#fin-target').innerHTML =
+    `<b>Read as:</b> ${esc(KIND_SAYS[t.kind] || t.kind || 'unclassified')}.<br>` +
+    `<b>What you need:</b> ${esc(MODE_SAYS[t.output_mode] || t.output_mode || '—')}.` +
+    (t.kind_why ? `<br><span class="muted small">${esc(t.kind_why)}</span>` : '');
+
+  $('#fin-rule').textContent =
+    `${revs.length} reviewers read the work against that requirement. Each one works on a ` +
+    `single axis and cannot see the others\u2019 verdicts, so they cannot agree with each ` +
+    `other by accident. Every one of them had to pass. One fail sent the defects back to ` +
+    `be done again, up to ${t.cap} attempts.`;
+  $('#fin-method').innerHTML = revs.map(r =>
+    `<li><b>${esc(r.label)}</b>${r.axis ? ` · ${esc(r.axis)}` : ''}` +
+    `${r.blurb ? `<br><span class="muted small">${esc(r.blurb)}</span>` : ''}</li>`).join('');
+
+  // ── 2. how it went against exactly that ────────────────────────
+  const verdicts = revs.map(r => t.reviews?.[r.slot]).filter(Boolean);
+  const fails = revs.filter(r => t.reviews?.[r.slot]?.result === 'fail');
+  $('#fin-verdict').textContent = ok
+    ? `Passed on attempt ${t.attempt} of ${t.cap}. All ${revs.length} reviewers passed it` +
+      (t.attempt > 1 ? `, after ${t.attempt - 1} earlier attempt${t.attempt > 2 ? 's were' : ' was'} failed and redone.`
+                     : ' first time.')
+    : `Failed every one of the ${t.cap} attempts. Below is the final attempt` +
+      (fails.length ? `, which ${fails.length === 1 ? 'lost on' : 'lost on'} ${fails.map(f => f.label).join(' and ')}.` : '.');
+  $('#fin-reviews').innerHTML = revs.map(r => {
+    const v = t.reviews?.[r.slot];
+    const cls = !v ? '' : v.result === 'pass' ? 'ok' : 'bad';
+    // A failure is the thing worth reading, so it opens. A pass is worth being able to
+    // read, which is not the same as being worth reading now.
+    return `<details class="frev ${cls}"${v && v.result !== 'pass' ? ' open' : ''}>
+      <summary><b>${esc(r.label)}</b>${r.axis ? ` · ${esc(r.axis)}` : ''}
+        <span class="verd ${cls}">${esc(v ? v.result : 'no verdict')}</span></summary>
+      <pre class="frevnotes">${esc(v ? v.notes : 'This reviewer recorded nothing, which the ledger counts as a failure.')}</pre>
+    </details>`;
+  }).join('');
+  if (!verdicts.length) {
+    $('#fin-verdict').textContent =
+      'No reviews are recorded against this ticket, which should not happen — read the activity log.';
+  }
+
+  // ── 3. and only now, what to do with it ────────────────────────
+  $('#fin-guide').innerHTML = guideFor(t, ok).map(x => `<li>${esc(x)}</li>`).join('');
   $('#fin-payload').textContent = payload;
   $('#fin-foot').textContent = ok
-    ? 'Reviewed twice before you saw it. Close this to go back to the ticket.'
+    ? `Reviewed by ${revs.length} independent reviewers before you saw it. Close this to go back to the ticket.`
     : 'Close this to read the activity log and see where it stopped.';
+
   sheet.classList.toggle('bad', !ok);
   $('#fin-copy').textContent = 'Copy the text';
+  $('#fin-copy').hidden = !payload;
   sheet.hidden = false;
+  sheet.scrollTop = 0;
+  const inner = $('.sheetinner', sheet); if (inner) inner.scrollTop = 0;
   $('#fin-copy').focus();
 }
 
@@ -752,4 +863,115 @@ function announceFinished() {
     selected = t.id;
     openSheet(t);
   }
+}
+
+
+// ── the agent roster ─────────────────────────────────────────────
+// Who is in the pipeline and what each of them is told. Kept out of the state frame: the
+// instructions are thousands of characters each, they change about once a month, and a
+// run pushes state every few seconds.
+let ROSTER = null;
+let editingAgent = null;
+
+async function loadRoster() {
+  try { ROSTER = await api('/api/agents'); paintRoster(); }
+  catch { /* the rest of Settings still works without it */ }
+}
+
+function paintRoster() {
+  if (!ROSTER) return;
+  const pick = $('#slotpick');
+  if (pick) {
+    pick.innerHTML = ROSTER.allSlots.map(sl => {
+      const a = ROSTER.agents.find(x => x.slot === sl) || {};
+      return `<label class="slotbox"><input type="checkbox" value="${sl}"${
+        ROSTER.slots.includes(sl) ? ' checked' : ''}> ${esc(a.axis || sl.toUpperCase())}</label>`;
+    }).join('');
+    $$('#slotpick input').forEach(cb => { cb.onchange = saveSlots; });
+  }
+
+  const list = $('#agentlist');
+  if (!list) return;
+  const groups = [...new Set(ROSTER.agents.map(a => a.group))];
+  list.innerHTML = groups.map(g => `<div class="agroup"><h4>${esc(g)}</h4>` +
+    ROSTER.agents.filter(a => a.group === g).map(a => `
+      <button type="button" class="arow${a.active ? '' : ' off'}" data-id="${esc(a.id)}">
+        <span class="aname">${esc(a.label)}${a.axis ? ` <span class="aaxis">${esc(a.axis)}</span>` : ''}${
+          a.custom ? ` <span class="atag">edited</span>` : ''}${
+          a.active ? '' : ` <span class="atag off">not in use</span>`}</span>
+        <span class="ablurb">${esc(a.blurb)}</span>
+      </button>`).join('') + '</div>').join('');
+  $$('#agentlist .arow').forEach(b => { b.onclick = () => editAgent(b.dataset.id); });
+}
+
+async function saveSlots() {
+  const slots = $$('#slotpick input').filter(c => c.checked).map(c => c.value);
+  try {
+    const r = await api('/api/agents/slots', { method: 'POST',
+      headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slots }) });
+    toast(`${r.slots.length} reviewers on every new ticket`);
+    await loadRoster();
+  } catch (e) {
+    toast(e.message);
+    await loadRoster();     // the refusal stands; put the boxes back to what is true
+  }
+}
+
+async function editAgent(id) {
+  try {
+    const r = await api(`/api/agent?id=${encodeURIComponent(id)}`);
+    editingAgent = r;
+    fillAgent(r);
+    $('#agentedit').hidden = false;
+    $('#agentlist').hidden = true;
+    $('#ag-text').focus();
+  } catch (e) { toast(e.message); }
+}
+
+function fillAgent(r) {
+  $('#ag-label').value = r.label;
+  $('#ag-axis').value = r.axis || '';
+  $('#ag-axis').closest('div').hidden = !r.slot;      // only a reviewer has an axis
+  $('#ag-blurb').value = r.blurb;
+  $('#ag-text').value = r.instructions;
+  $('#ag-state').textContent = r.custom
+    ? `${r.instructions.length.toLocaleString()} characters — edited`
+    : `${r.instructions.length.toLocaleString()} characters — as it shipped`;
+  $('#ag-reset').hidden = !r.custom;
+}
+
+function closeAgent() {
+  editingAgent = null;
+  $('#agentedit').hidden = true;
+  $('#agentlist').hidden = false;
+}
+
+function wireRoster() {
+  const save = $('#ag-save'), reset = $('#ag-reset'), cancel = $('#ag-cancel');
+  if (!save) return;
+  save.onclick = async () => {
+    if (!editingAgent) return;
+    save.disabled = true;
+    try {
+      const r = await api('/api/agent', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: editingAgent.id, label: $('#ag-label').value,
+          axis: $('#ag-axis').value, blurb: $('#ag-blurb').value, instructions: $('#ag-text').value }) });
+      toast(r.custom ? `${r.label} saved — it runs with your text from the next stage on`
+                     : `${r.label} is back to the text it shipped with`);
+      closeAgent();
+      await loadRoster();
+    } catch (e) { toast(e.message); }
+    finally { save.disabled = false; }
+  };
+  reset.onclick = async () => {
+    if (!editingAgent) return;
+    try {
+      const r = await api('/api/agent/reset', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: editingAgent.id }) });
+      editingAgent = r; fillAgent(r);
+      toast('Back to the shipped instructions');
+      await loadRoster();
+    } catch (e) { toast(e.message); }
+  };
+  cancel.onclick = closeAgent;
 }

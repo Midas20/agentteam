@@ -12,6 +12,7 @@ import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classify, doWork, review, writePayload } from './provider.mjs';
 import { modelFor, specWith, read as readInputs } from './inputs.mjs';
+import { activeSlots } from './agents.mjs';
 import { plainText, countMarkdown } from './plain.mjs';
 
 // The model the worker and the reviewers run on unless the person pins something else.
@@ -165,7 +166,12 @@ async function runTaskInner({ id }) {
           });
         t = readTask(id);
         emit({ level: 'done', stage: 'model', text: `work ${t.model.work} · review ${t.model.review} — ${t.model_why}` });
-        await ledger(['assign', id, '--by', 'app']);
+        // The reviewer roster is read once, here, and written onto the task. Everything
+        // downstream reads it back off the task rather than asking the config again, so a
+        // roster edited while this ticket is in flight cannot strand it waiting on a
+        // reviewer that will never run.
+        const slots = activeSlots();
+        await ledger(['assign', id, '--slots', slots.join(''), '--by', 'app']);
         t = readTask(id);
       }
 
@@ -185,9 +191,10 @@ async function runTaskInner({ id }) {
       // 5. the reviews still outstanding. On a fresh attempt that is both of them, run
       // concurrently; on a resume it may be only the one that never landed.
       if (t.state === 'built' || t.state === 'reviewing') {
-        const missing = ['a', 'b'].filter(s => !t.reviews[s]);
+        const slots = t.review_slots?.length >= 2 ? t.review_slots : ['a', 'b'];
+        const missing = slots.filter(s => !t.reviews[s]);
         emit({ level: 'stage', stage: 'review', text:
-          missing.length === 2 ? `Two independent reviews on ${t.model.review}`
+          missing.length === slots.length ? `${slots.length} independent reviews on ${t.model.review}`
                                : `Resuming — review ${missing.join('')} never landed` });
         const args = { spec: specWith(id, t.spec), attachments: t.attachments, buildNotes: t.build_notes,
                        kind: t.kind, output_mode: t.output_mode, model: t.model.review, onEvent: emit };
@@ -199,7 +206,7 @@ async function runTaskInner({ id }) {
         }
         t = readTask(id);
         emit({ level: 'done', stage: 'review', text:
-          ['a', 'b'].map(s => `${s.toUpperCase()}: ${t.reviews[s]?.result ?? '—'}`).join(' · ') });
+          slots.map(s => `${s.toUpperCase()}: ${t.reviews[s]?.result ?? '—'}`).join(' · ') });
         if (t.state === 'failed' && t.attempt < t.cap)
           emit({ level: 'info', stage: 'verdict', text: `Attempt ${t.attempt} failed — retrying with the defects` });
       }

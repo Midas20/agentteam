@@ -326,23 +326,61 @@ pre{margin:0;font-size:11.5px;line-height:1.6;padding:12px 13px;overflow-x:auto;
 /* ── the finished sheet ───────────────────────────────────────── */
 .sheet{position:fixed;inset:0;z-index:120;background:rgba(16,20,24,.55);
   backdrop-filter:blur(3px);display:flex;align-items:stretch;justify-content:center;padding:22px}
+/* The sheet reads top to bottom now - what was asked, how it was judged, what to submit -
+   so the whole panel scrolls and the header stays put above it. It used to be three fixed
+   bands with only the payload scrolling, which cannot hold an argument. */
 .sheetinner{background:var(--surface);border:1px solid var(--line);border-radius:9px;
-  box-shadow:0 18px 60px rgba(0,0,0,.32);width:100%;max-width:1000px;display:flex;
-  flex-direction:column;overflow:hidden}
+  box-shadow:0 18px 60px rgba(0,0,0,.32);width:100%;max-width:1040px;display:flex;
+  flex-direction:column;overflow-y:auto;overflow-x:hidden}
 .sheethead{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;
-  padding:20px 24px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  padding:20px 24px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  position:sticky;top:0;background:var(--surface);z-index:2}
 .sheethead h2{margin:2px 0 4px;font-size:21px;line-height:1.2}
 .sheethead .eyebrow{margin:0;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--ok);font-weight:700}
 .sheet.bad .sheethead .eyebrow{color:var(--bad)}
 .sheethead p{margin:0}
 .sheetbtns{display:flex;gap:8px;flex-shrink:0}
-.guide{margin:0;padding:16px 24px 14px 46px;display:grid;gap:7px;background:var(--sunk);
-  border-bottom:1px solid var(--line);font-size:13.5px}
+
+.fsec{padding:18px 24px 20px;border-top:1px solid var(--line)}
+.fsec:first-of-type{border-top:0}
+.fsec>h3{margin:0 0 13px;font-size:13.5px;display:flex;align-items:center;gap:9px}
+.fnum{display:inline-grid;place-items:center;width:21px;height:21px;border-radius:50%;flex:none;
+  background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:700;
+  font-variant-numeric:tabular-nums}
+.fcols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px}
+@media (max-width:860px){ .fcols{grid-template-columns:minmax(0,1fr)} }
+.fcol h4{margin:0 0 7px;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--faint);font-weight:700}
+.fbox{margin:0;max-height:240px;overflow:auto;background:var(--sunk);border:1px solid var(--hair);
+  border-radius:5px;padding:10px 12px;font:12.5px/1.6 "JetBrains Mono",monospace;
+  white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
+.ftarget{margin:11px 0 0;font-size:13px;line-height:1.55}
+.method{list-style:none;margin:11px 0 0;padding:0;display:grid;gap:8px}
+.method li{padding:8px 11px;background:var(--raised);border-left:3px solid var(--accent);
+  border-radius:0 4px 4px 0;font-size:12.5px;line-height:1.5}
+
+.fverdict{margin:0 0 12px;font-size:14px;font-weight:600;line-height:1.5}
+.sheet.bad .fverdict{color:var(--bad)}
+.freviews{display:grid;gap:8px}
+.frev{border:1px solid var(--line);border-radius:5px;background:var(--raised)}
+.frev.ok{border-color:var(--ok)}
+.frev.bad{border-color:var(--bad)}
+.frev>summary{cursor:pointer;padding:9px 12px;font-size:13px;display:flex;align-items:center;gap:8px}
+.frev .verd{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  font-weight:700;padding:2px 8px;border-radius:99px;background:var(--sunk);color:var(--muted)}
+.frev .verd.ok{background:var(--ok-bg);color:var(--ok)}
+.frev .verd.bad{background:var(--bad-bg);color:var(--bad)}
+.frevnotes{margin:0;padding:2px 13px 13px;max-height:300px;overflow:auto;color:var(--muted);
+  font:12.5px/1.62 "JetBrains Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.guide{margin:0;padding:14px 18px 14px 40px;display:grid;gap:7px;background:var(--sunk);
+  border:1px solid var(--hair);border-radius:5px;font-size:13.5px}
 .guide li{padding-left:3px}
-.sheetpayload{flex:1;margin:0;overflow:auto;padding:18px 24px;font-size:13px;line-height:1.62;
-  white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface);color:var(--ink)}
-#fin-foot{margin:0;padding:11px 24px 15px;border-top:1px solid var(--line)}
+.sheetpayload{margin:12px 0 0;padding:14px 16px;font-size:13px;line-height:1.62;
+  white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface);color:var(--ink);
+  border:1px solid var(--line);border-radius:5px;max-height:60vh;overflow:auto}
+#fin-foot{margin:11px 0 0}
 @media (max-width:700px){ .sheet{padding:0} .sheetinner{border-radius:0;border:0} }
 /* .sheet sets display:flex, which outranks the browser's default rule for [hidden].
    Without this the overlay is visible even while the page believes it is closed. */
@@ -353,3 +391,43 @@ pre{margin:0;font-size:11.5px;line-height:1.6;padding:12px 13px;overflow-x:auto;
   border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink);
   resize:vertical;min-height:96px}
 #standingstate{margin-right:auto}
+
+
+/* ── the agent roster, in Settings ────────────────────────────── */
+.slotpick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:11px 0 4px}
+.slotbox{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;cursor:pointer;
+  border:1px solid var(--line);border-radius:99px;font-size:12px;background:var(--raised)}
+.slotbox:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.agentlist{display:grid;gap:13px;margin-top:10px}
+.agroup h4{margin:0 0 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--faint);font-weight:700}
+.arow{display:grid;gap:3px;width:100%;text-align:left;margin-bottom:5px;padding:8px 11px;
+  background:var(--raised);border:1px solid var(--hair);border-radius:5px;cursor:pointer;
+  color:var(--ink);font:inherit}
+.arow:hover{border-color:var(--accent)}
+.arow.off{opacity:.55}
+.aname{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.aaxis{font-weight:500;color:var(--accent);font-size:11.5px}
+.atag{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;
+  background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:99px}
+.atag.off{background:var(--sunk);color:var(--faint)}
+.ablurb{font-size:11.5px;color:var(--muted);line-height:1.45}
+.agentedit{display:grid;gap:8px;margin-top:10px}
+.agentedit input{width:100%}
+#ag-text{width:100%;font:12.5px/1.55 "JetBrains Mono",monospace;padding:9px 10px;
+  border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink);
+  resize:vertical}
+
+/* Settings panes. Three unrelated concerns, one dialog. */
+.tabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;
+  padding:7px 11px;font:600 12.5px/1 inherit;color:var(--muted);cursor:pointer;border-radius:0}
+.tabs button:hover{color:var(--ink)}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.pane[hidden]{display:none}
+
+/* A pass reads as closed and a fail as open, so the row has to look openable either way. */
+.frev>summary::marker{content:''}
+.frev>summary::-webkit-details-marker{display:none}
+.frev>summary::before{content:'\25B8';color:var(--faint);font-size:10px;width:9px;flex:none}
+.frev[open]>summary::before{content:'\25BE'}

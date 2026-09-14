@@ -20,6 +20,8 @@ import { snapshot as usageSnapshot, reset as usageReset, onUsage, allTasks as us
 import { sweep } from './orphans.mjs';
 import { setModels, addAddendum, read as readInputs, forget as forgetInputs, MODELS, STAGES } from './inputs.mjs';
 import { text as standingText, save as saveStanding, status as standingStatus } from './standing.mjs';
+import { roster, role as agentRole, setRole, resetRole, resetAll, setSlots, activeSlots,
+         reviewMethod, allReviewers, exists as agentExists } from './agents.mjs';
 
 applyStoredKey();   // before the first request, and before any client is built
 
@@ -53,6 +55,10 @@ const snapshot = async () => {
            key: keyStatus(), auth, installHint: INSTALL_HINT, releases: RELEASES,
            provider: providerStatus(), usage: usageSnapshot(),
            standing: { ...standingStatus(), text: standingText() },
+           // Only the shape of the roster travels on every state frame - who reviews, on
+           // what axis. The instructions themselves are thousands of characters each and
+           // are fetched from /api/agents when the editor is actually opened.
+           agents: { slots: activeSlots(), method: reviewMethod(), reviewers: allReviewers() },
            version: process.env.RELAY_VERSION || null },
   };
 };
@@ -160,6 +166,48 @@ const server = createServer(async (req, res) => {
         const text = saveStanding(b.text);
         pushState();
         return json(res, 200, { ...standingStatus(), text });
+      } catch (e) { return json(res, 400, { error: e.message }); }
+    }
+
+    // ---- the agent roster -------------------------------------------------
+    // Who is in the pipeline and what each of them is told. Read separately from the
+    // state snapshot because the instructions are long and are only wanted when someone
+    // opens the editor.
+    if (p === '/api/agents' && req.method === 'GET') return json(res, 200, roster());
+
+    if (p === '/api/agent' && req.method === 'GET') {
+      const id = url.searchParams.get('id') || '';
+      if (!agentExists(id)) return json(res, 404, { error: `no such agent: ${id}` });
+      return json(res, 200, agentRole(id));
+    }
+
+    if (p === '/api/agent' && req.method === 'POST') {
+      const b = await readBody(req);
+      if (!agentExists(b.id)) return json(res, 400, { error: `no such agent: ${b.id}` });
+      try {
+        const r = setRole(b.id, b);
+        pushState();
+        return json(res, 200, r);
+      } catch (e) { return json(res, 400, { error: e.message }); }
+    }
+
+    if (p === '/api/agent/reset' && req.method === 'POST') {
+      const b = await readBody(req);
+      if (b.all) { const r = resetAll(); pushState(); return json(res, 200, { roster: r }); }
+      if (!agentExists(b.id)) return json(res, 400, { error: `no such agent: ${b.id}` });
+      const r = resetRole(b.id);
+      pushState();
+      return json(res, 200, r);
+    }
+
+    // How many reviewers, and which. A running ticket is unaffected: its roster was
+    // written onto the task when it was assigned.
+    if (p === '/api/agents/slots' && req.method === 'POST') {
+      const b = await readBody(req);
+      try {
+        const slots = setSlots(b.slots);
+        pushState();
+        return json(res, 200, { slots, method: reviewMethod() });
       } catch (e) { return json(res, 400, { error: e.message }); }
     }
 

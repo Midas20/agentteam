@@ -23,13 +23,20 @@ const KINDS = {
   prompt:  'worker-prompt',    // craft prompts that make models fail
 };
 const MODELS = ['opus', 'sonnet', 'haiku', 'fable'];
+// Reviewer slots a task may use. Two is the floor and it is not negotiable: the gate is
+// two verdicts reached without sight of each other, and one verdict is not a gate. Which
+// of these actually run is a property of the task, fixed at the moment it is assigned.
+const SLOTS  = ['a', 'b', 'c', 'd'];
+const DEFAULT_SLOTS = ['a', 'b'];
+const slotsOf = (t) => (Array.isArray(t.review_slots) && t.review_slots.length >= 2)
+  ? SLOTS.filter(s => t.review_slots.includes(s)) : [...DEFAULT_SLOTS];
 const MODES  = ['paste', 'guide'];
 // Used only to stop a reviewer being pinned weaker than the worker.
 // 'fable' is deliberately unranked - the guard is skipped rather than guessed.
 const STRENGTH = { opus: 3, sonnet: 2, haiku: 1 };
 
 const ROLES = ['orchestrator', 'model-analyst', ...Object.values(KINDS),
-               'reviewer-a', 'reviewer-b', 'result'];
+               ...SLOTS.map(s => `reviewer-${s}`), 'result'];
 
 // Legal transitions. Anything not listed is rejected.
 const LEGAL = {
@@ -147,6 +154,7 @@ const cmds = {
            state: 'open', attempt: 0, cap: Number(a.cap || 3),
            created: now(), updated: now(),
            build_notes: '', last_defects: '', reviews: {}, review_notes: '',
+           review_slots: [...DEFAULT_SLOTS],
            payload: '', history: [] });
     console.log(id);
     if (attachments.length) console.log(attachments.map(p => `attached: ${p}`).join('\n'));
@@ -194,11 +202,22 @@ const cmds = {
     if (!t.model) die(`task ${t.id} has no model pinned - relay envelope ${t.id} --to model-analyst`);
     if (t.attempt >= t.cap) die(`attempt cap ${t.cap} already reached - task is ${t.state}, escalate instead`);
     if (t.state === 'failed') t.last_defects = t.review_notes;
+    // Who reviews this attempt is settled here, before any reviewer exists, and recorded
+    // on the task. A roster changed halfway through would leave a task waiting forever on
+    // a reviewer nobody is going to run, or resolve on fewer verdicts than it was
+    // promised, so the task carries its own and assign is the only place it can change.
+    if (a.slots && a.slots !== true) {
+      const want = SLOTS.filter(s => String(a.slots).includes(s));
+      if (want.length < 2) die(`--slots must name at least two of: ${SLOTS.join(', ')}`);
+      t.review_slots = want;
+    }
+    if (!Array.isArray(t.review_slots) || t.review_slots.length < 2) t.review_slots = [...DEFAULT_SLOTS];
     t.attempt++;
     t.reviews = {}; t.review_notes = '';
     move(t, 'assigned', a.by || 'orchestrator', a.note);
     save(t);
-    console.log(`${t.id} assigned to ${KINDS[t.kind]} on ${t.model.work} (attempt ${t.attempt}/${t.cap})`);
+    console.log(`${t.id} assigned to ${KINDS[t.kind]} on ${t.model.work} (attempt ${t.attempt}/${t.cap})`
+      + ` - reviewers: ${t.review_slots.join(', ')}`);
     console.log(`NEXT: relay envelope ${t.id} --to worker`);
   },
 
@@ -209,7 +228,8 @@ const cmds = {
     t.build_notes = a['notes-file'] ? readFileSync(a['notes-file'], 'utf8') : str(a.notes, 'notes');
     save(move(t, 'built', a.by || KINDS[t.kind], t.build_notes.slice(0, 300)));
     console.log(`${t.id} built (attempt ${t.attempt}/${t.cap})`);
-    console.log(`NEXT: send to BOTH reviewers - relay envelope ${t.id} --to reviewer-a  AND  --to reviewer-b`);
+    console.log(`NEXT: send to EVERY reviewer - `
+      + slotsOf(t).map(s => `relay envelope ${t.id} --to reviewer-${s}`).join('  AND  '));
   },
 
   reviewing(a) {
@@ -219,32 +239,36 @@ const cmds = {
     console.log(`${t.id} under review`);
   },
 
-  // Two independent reviews are required. The second one to land resolves the verdict.
+  // Every reviewer on the task roster must report. The last one to land resolves the
+  // verdict, and one fail is enough to fail the attempt: a gate decided by majority would
+  // let the reviewer who found the defect be outvoted by the ones who were looking
+  // somewhere else, which is the one outcome independent axes exist to prevent.
   review(a) {
     const id = a._[0];
-    if (!['a', 'b'].includes(a.slot)) die('--slot must be a or b');
     if (!['pass', 'fail'].includes(a.result)) die('--result must be pass or fail');
     const notes = a['notes-file'] ? readFileSync(a['notes-file'], 'utf8') : str(a.notes, 'notes');
     withLock(id, () => {
       const t = load(id);
+      const slots = slotsOf(t);
+      if (!slots.includes(a.slot))
+        die(`--slot must be one of: ${slots.join(', ')} (the reviewers this task was assigned)`);
       if (t.state === 'built') move(t, 'reviewing', a.by || `reviewer-${a.slot}`, 'picked up');
       if (t.state !== 'reviewing') die(`task ${t.id} is ${t.state}, not awaiting review`);
       if (t.reviews[a.slot]) die(`slot ${a.slot} already recorded for attempt ${t.attempt}: ${t.reviews[a.slot].result}`);
       t.reviews[a.slot] = { result: a.result, notes, by: a.by || `reviewer-${a.slot}`, at: now() };
 
-      const other = a.slot === 'a' ? 'b' : 'a';
-      if (!t.reviews[other]) {
+      const outstanding = slots.filter(s => !t.reviews[s]);
+      if (outstanding.length) {
         save(t);
-        return console.log(`${t.id} review ${a.slot} recorded (${a.result}) - slot ${other} outstanding\n`
-          + `NEXT: WAIT. Do not route anything. The other reviewer resolves this task.`);
+        return console.log(`${t.id} review ${a.slot} recorded (${a.result}) - outstanding: ${outstanding.join(', ')}\n`
+          + `NEXT: WAIT. Do not route anything. The last reviewer to report resolves this task.`);
       }
 
-      t.review_notes = `[review a - ${t.reviews.a.result}] ${t.reviews.a.notes}\n`
-                     + `[review b - ${t.reviews.b.result}] ${t.reviews.b.notes}`;
-      const passed = t.reviews.a.result === 'pass' && t.reviews.b.result === 'pass';
+      t.review_notes = slots.map(s => `[review ${s} - ${t.reviews[s].result}] ${t.reviews[s].notes}`).join('\n');
+      const passed = slots.every(s => t.reviews[s].result === 'pass');
       save(move(t, passed ? 'passed' : 'failed', a.by || `reviewer-${a.slot}`,
-                passed ? 'both reviews pass' : 'at least one review failed'));
-      console.log(`${t.id} both reviews in (attempt ${t.attempt}/${t.cap})`);
+                passed ? `all ${slots.length} reviews pass` : 'at least one review failed'));
+      console.log(`${t.id} all ${slots.length} reviews in (attempt ${t.attempt}/${t.cap})`);
       if (passed)
         console.log(`VERDICT: PASSED\nNEXT: relay envelope ${t.id} --to result`);
       else if (t.attempt >= t.cap)
@@ -284,7 +308,7 @@ const cmds = {
   // Generated, so reply-to, the model pin and the attachments survive every hop.
   envelope(a) {
     const t = load(a._[0]), r = routes();
-    let to = a.to || die(`--to model-analyst|worker|reviewer-a|reviewer-b|orchestrator|result`);
+    let to = a.to || die(`--to model-analyst|worker|${SLOTS.map(s => `reviewer-${s}`).join('|')}|orchestrator|result`);
     if (to === 'worker') to = KINDS[t.kind] || die(`task ${t.id} is unclassified`);
     if (!ROLES.includes(to)) die(`unknown hop: ${to}`);
     const hop = r[to];
@@ -324,12 +348,13 @@ ${body}`);
     if (missing.length) console.log(`\nstill unpinned: ${missing.join(', ')}`);
   },
 
-  // --for a|b hides the OTHER reviewer's notes, so the two reviews stay independent.
+  // --for <slot> hides every OTHER reviewer notes, so the reviews stay independent.
   show(a) {
     const t = load(a._[0]);
-    if (a.for === 'a' || a.for === 'b') {
-      const other = a.for === 'a' ? 'b' : 'a';
-      if (t.reviews[other]) t.reviews[other] = '(hidden - reviews are independent)';
+    if (SLOTS.includes(a.for)) {
+      for (const s of slotsOf(t)) {
+        if (s !== a.for && t.reviews[s]) t.reviews[s] = '(hidden - reviews are independent)';
+      }
     }
     console.log(JSON.stringify(t, null, 2));
   },
@@ -341,7 +366,7 @@ ${body}`);
       .sort((x, y) => y.created.localeCompare(x.created));
     if (!rows.length) return console.log('(no tasks)');
     for (const t of rows) {
-      const rv = ['a', 'b'].map(s => t.reviews[s] ? t.reviews[s].result[0] : '-').join('');
+      const rv = slotsOf(t).map(s => t.reviews[s] ? t.reviews[s].result[0] : '-').join('');
       console.log(`${t.id}  ${t.state.padEnd(10)} ${(t.kind || '?').padEnd(7)} `
         + `${(t.model?.work || '?').padEnd(6)} ${t.attempt}/${t.cap} rv:${rv}  ${t.title}`);
     }

@@ -20,7 +20,11 @@ import { existsSync, readdirSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { z } from 'zod/v4';
-import { CLASSIFY, MODEL_PICK, WORKER, REVIEWER, RESULT } from './prompts.mjs';
+import { MODEL_PICK } from './prompts.mjs';
+// The role prompts are no longer read from prompts.mjs directly. prompts.mjs holds the
+// defaults; agents.mjs is what a stage actually runs with, because any of them can be
+// rewritten from Settings and the rewritten one has to be the one that runs.
+import { instructions as roleText } from './agents.mjs';
 import { record, taskContext } from './usage.mjs';
 import { remember, forget } from './orphans.mjs';
 
@@ -310,7 +314,7 @@ const ClassifySchema = z.object({
 
 export async function classify({ spec, attachments, model = 'opus', onEvent }) {
   return structured({
-    schema: ClassifySchema, system: CLASSIFY, model, stage: 'classify', onEvent, attachments,
+    schema: ClassifySchema, system: roleText('classify'), model, stage: 'classify', onEvent, attachments,
     shape: `  kind         one of: answer | repo | project | prompt\n` +
            `  output_mode  one of: paste | guide\n` +
            `  why          one or two sentences`,
@@ -348,7 +352,7 @@ export async function doWork({ kind, model, spec, attachments, lastDefects, atte
   if (kind === 'project') parts.push(`Your workspace directory is: ${workspace}\nCreate files there.`);
   if (lastDefects) parts.push(
     `--- DEFECTS FROM ATTEMPT ${attempt} (this is attempt ${attempt + 1} of ${cap}) ---\n` +
-    `Two reviewers failed the previous attempt for these reasons. Fix exactly these. Do not\n` +
+    `The reviewers failed the previous attempt for these reasons. Fix exactly these. Do not\n` +
     `re-architect what already passed, and do not widen scope. If a defect is wrong, fix the\n` +
     `rest and say so in your notes.\n\n${lastDefects}`);
   // Reviewers were repeatedly having to guess which half of the worker's reply was the
@@ -365,7 +369,7 @@ export async function doWork({ kind, model, spec, attachments, lastDefects, atte
     `needs to verify the deliverable. Never put any of this above the second heading.`);
 
   const { text } = await turn({
-    system: WORKER[kind] + NO_SUBMIT_TOOL('end your reply with the notes themselves.'), model, stage: 'work', onEvent,
+    system: roleText(`worker.${kind}`) + NO_SUBMIT_TOOL('end your reply with the notes themselves.'), model, stage: 'work', onEvent,
     prompt: parts.join('\n\n'),
     tools: kind === 'project' ? BUILD : RESEARCH,
     cwd: kind === 'project' ? workspace : undefined,
@@ -398,7 +402,7 @@ export async function review({ slot, model, spec, attachments, buildNotes, kind,
   let text = '';
   try {
     ({ text } = await turn({
-      system: REVIEWER[slot] + NO_SUBMIT_TOOL('reply with the JSON object described below and nothing else.'), model, stage, onEvent, prompt,
+      system: roleText(`reviewer.${slot}`) + NO_SUBMIT_TOOL('reply with the JSON object described below and nothing else.'), model, stage, onEvent, prompt,
       tools: RESEARCH, addDirs: attachDirs(attachments), maxTurns: 40, timeout: 30 * 60 * 1000,
     }));
     const parsed = extractJson(text);
@@ -415,7 +419,7 @@ export async function review({ slot, model, spec, attachments, buildNotes, kind,
 }
 
 export async function writePayload({ model, output_mode, escalated, spec, attachments, buildNotes, reviewNotes, history, onEvent }) {
-  const system = escalated ? RESULT.escalated : RESULT[output_mode];
+  const system = roleText(escalated ? 'result.escalated' : `result.${output_mode}`);
   const body = escalated
     ? `--- the requirement ---\n${spec}\n\n--- what was attempted ---\n${history}\n\n--- why the reviewers failed it ---\n${reviewNotes}`
     : `--- the requirement ---\n${spec}\n\n--- the reviewed work ---\n${buildNotes}\n\n--- what the reviewers confirmed ---\n${reviewNotes}`;

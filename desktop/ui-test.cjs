@@ -22,8 +22,24 @@ app.whenReady().then(async () => {
   const errors = [];
   win.webContents.on('console-message', (e) => { if (e.level === 'error' || e.level === 3) errors.push(e.message); });
   await win.loadURL(`http://127.0.0.1:${port}/`);
-  await wait(2000);
+  await wait(500);
   const js = (c) => win.webContents.executeJavaScript(c);
+  // Anything that goes to the server has to be waited FOR, not waited OUT. A fixed sleep
+  // long enough on this machine is a coin toss on a slower one, and the failure it
+  // produces looks exactly like a real bug in the thing being tested.
+  const until = async (expr, ms = 6000) => {
+    for (const t0 = Date.now(); Date.now() - t0 < ms;) {
+      try { if (await js(expr)) return true; } catch { /* mid-render */ }
+      await wait(80);
+    }
+    return false;
+  };
+  // The first real state frame has to have landed before anything else happens. The
+  // server awaits an auth probe to build it, and that probe can take seconds on a machine
+  // where the CLI is missing - so the frame can otherwise arrive in the middle of a later
+  // step, where it re-opens the settings dialog on the sign-in pane and every check after
+  // it fails for a reason that has nothing to do with what was being tested.
+  for (let i = 0; i < 300 && !(await js(`!!render._asked`)); i++) await wait(100);
   await js(`document.querySelector('#settings').close(); true`);
 
   let failed = 0;
@@ -37,13 +53,26 @@ app.whenReady().then(async () => {
   const older = new Date(Date.now() - 754000).toISOString();
   const base = (over) => Object.assign({
     id: 't-x', title: 'A ticket', kind: 'answer', output_mode: 'paste',
+    spec: 'Rate each answer and explain the rating.',
+    kind_why: 'It asks for selections plus a written explanation.',
+    review_slots: ['a', 'b'],
     model: { work: 'sonnet', review: 'opus' }, state: 'assigned', attempt: 1, cap: 3,
     created: older, updated: now, reviews: {}, history: [], build_notes: '', payload: '',
     attachments: [], usage: null,
   }, over);
 
+  // The roster as the server publishes it. Reviewer C is switched off but still named:
+  // a ticket judged by three has to keep saying three afterwards.
+  const REVIEWERS = [
+    { slot: 'a', label: 'Reviewer A', axis: 'Compliance', blurb: 'Was it all delivered?' },
+    { slot: 'b', label: 'Reviewer B', axis: 'Correctness', blurb: 'Is it actually right?' },
+    { slot: 'c', label: 'Reviewer C', axis: 'Evidence', blurb: 'Could a stranger re-derive it?' },
+    { slot: 'd', label: 'Reviewer D', axis: 'Risk', blurb: 'What would cost most if wrong?' },
+  ];
+
   const feed = (tasks) => js(`(() => {
-    STATE = { tasks: ${JSON.stringify(tasks)}, env: { credentials: true, usage: { calls: 9, input: 100, output: 2000, cacheRead: 500000, cacheWrite: 210000, costUsd: 3.4567 }, provider: { mode:'auto', active:'cli', cli:{available:true,path:'x'} }, auth:{source:'none',signedIn:false,profiles:[],antInstalled:false}, key:{stored:false} } };
+    STATE = { tasks: ${JSON.stringify(tasks)}, env: { credentials: true, usage: { calls: 9, input: 100, output: 2000, cacheRead: 500000, cacheWrite: 210000, costUsd: 3.4567 }, provider: { mode:'auto', active:'cli', cli:{available:true,path:'x'} }, auth:{source:'none',signedIn:false,profiles:[],antInstalled:false}, key:{stored:false},
+      agents: { slots:['a','b'], method: ${JSON.stringify(REVIEWERS.slice(0,2))}, reviewers: ${JSON.stringify(REVIEWERS)} } } };
     render(); return true; })()`);
 
   // 1. Mid-run, nothing reviewed yet.
@@ -142,6 +171,8 @@ app.whenReady().then(async () => {
 
   // 9. Finishing: the sheet that carries what the person uploads.
   await feed([base({ id: 't-x', state: 'delivered', payload: 'Q1: the answer -> yes',
+                     reviews: { a: { result: 'pass', notes: 'every clause met' },
+                                b: { result: 'pass', notes: 'both links check out' } },
                      usage: { calls: 6, input: 1, output: 2, cacheRead: 1, cacheWrite: 1, costUsd: 0.5 } })]);
   await js(`selected = 't-x'; LOGS.set('t-x', []); render(); true`);
   await wait(300);
@@ -157,6 +188,65 @@ app.whenReady().then(async () => {
     await js(`document.querySelector('#fin-payload').textContent`), 'Q1: the answer -> yes');
   check('and numbered steps for uploading it',
     await js(`document.querySelectorAll('#fin-guide li').length >= 3`), true);
+
+  // The sheet has to make its case before it hands over the answer: what was asked and
+  // how it was going to be judged, then how it went, and only then what to submit. It
+  // opened on the payload for a while, which is a conclusion with its argument missing.
+  check('three numbered sections', await js(`document.querySelectorAll('#finished .fsec').length`), 3);
+  check('numbered 1, 2, 3 in order',
+    await js(`[...document.querySelectorAll('#finished .fnum')].map(n => n.textContent).join('')`), '123');
+  check('the requirement comes before the payload',
+    await js(`(() => { const spec = document.querySelector('#fin-spec'), pay = document.querySelector('#fin-payload');
+      return !!(spec.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING); })()`), true);
+  check('the verdicts come between them',
+    await js(`(() => { const v = document.querySelector('#fin-verdict'), spec = document.querySelector('#fin-spec'),
+        pay = document.querySelector('#fin-payload');
+      return !!(spec.compareDocumentPosition(v) & Node.DOCUMENT_POSITION_FOLLOWING)
+          && !!(v.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING); })()`), true);
+  check('the requirement is shown verbatim',
+    await js(`document.querySelector('#fin-spec').textContent`), 'Rate each answer and explain the rating.');
+  check('and what it was read as',
+    await js(`/evaluation to answer/.test(document.querySelector('#fin-target').textContent)`), true);
+  check('the review method names every reviewer that judged it',
+    await js(`[...document.querySelectorAll('#fin-method li b')].map(b => b.textContent)`),
+    ['Reviewer A', 'Reviewer B']);
+  check('each with the axis it was working on',
+    await js(`[...document.querySelectorAll('#fin-method li')].map(li => li.textContent.includes('·'))`),
+    [true, true]);
+  check('and says a single fail is enough',
+    await js(`/one fail/i.test(document.querySelector('#fin-rule').textContent)`), true);
+  check('the verdict says which attempt carried it',
+    await js(`/attempt 1 of 3/i.test(document.querySelector('#fin-verdict').textContent)`), true);
+
+  // 9b. The reviewers on the sheet, including one that failed.
+  await feed([base({ id: 't-x', state: 'delivered', payload: 'Q1: yes', attempt: 2,
+                     reviews: { a: { result: 'pass', notes: 'every clause met' },
+                                b: { result: 'fail', notes: 'the second link 404s' } } })]);
+  await js(`selected = 't-x'; LOGS.set('t-x', []); render();
+            document.querySelector('.expand').click(); true`);
+  await wait(300);
+  check('each reviewer gets its own block', await js(`document.querySelectorAll('#fin-reviews .frev').length`), 2);
+  check('a failure is open by default, a pass is not',
+    await js(`[...document.querySelectorAll('#fin-reviews .frev')].map(d => d.open)`), [false, true]);
+  check('the failing reviewer notes are readable',
+    await js(`document.querySelector('#fin-reviews .frev.bad .frevnotes').textContent`), 'the second link 404s');
+
+  // 9c. A ticket judged by three keeps saying three, even with C now switched off.
+  await feed([base({ id: 't-x', state: 'delivered', payload: 'Q1: yes', review_slots: ['a', 'b', 'c'],
+                     reviews: { a: { result: 'pass', notes: 'ok' }, b: { result: 'pass', notes: 'ok' },
+                                c: { result: 'pass', notes: 'ok' } } })]);
+  await js(`selected = 't-x'; LOGS.set('t-x', []); render();
+            document.querySelector('.expand').click(); true`);
+  await wait(300);
+  check('three reviewers are described', await js(`document.querySelectorAll('#fin-method li').length`), 3);
+  check('and three verdicts shown', await js(`document.querySelectorAll('#fin-reviews .frev').length`), 3);
+  check('the count in the prose matches',
+    await js(`/^3 reviewers/.test(document.querySelector('#fin-rule').textContent)`), true);
+  check('the ticket panel labels its slots by axis',
+    await js(`[...document.querySelectorAll('.slots .slot')].map(s => s.textContent.split(':')[0])`),
+    ['Compliance', 'Correctness', 'Evidence']);
+  await js(`document.querySelector('#fin-close').click(); true`);
+  await wait(200);
   check('Escape closes it',
     await js(`(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
       return document.querySelector('#finished').hidden; })()`), true);
@@ -173,6 +263,87 @@ app.whenReady().then(async () => {
     await js(`/nothing here is ready to submit/i.test(document.querySelector('#fin-guide').textContent)`), true);
   await js(`document.querySelector('#fin-close').click(); true`);
   await wait(200);
+
+  // 10. The agent roster in Settings, against the real endpoints. An editor that saves
+  //     text nothing reads would look identical from the screen, so the last check reads
+  //     the value back out of the server rather than out of the page.
+  await js(`document.querySelector('#opensettings').click(); true`);
+  await wait(300);
+  check('the dialog opens on sign-in',
+    await js(`document.querySelector('#settings .pane[data-pane="auth"]').hidden`), false);
+  check('and the roster is behind its own tab',
+    await js(`document.querySelector('#settings .pane[data-pane="agents"]').hidden`), true);
+  await js(`document.querySelector('#settabs [data-pane="agents"]').click(); true`);
+  check('the tab shows it',
+    await js(`document.querySelector('#settings .pane[data-pane="agents"]').hidden`), false);
+  check('and the sign-in pane steps aside',
+    await js(`document.querySelector('#settings .pane[data-pane="auth"]').hidden`), true);
+
+  await until(`document.querySelectorAll('#agentlist .arow').length === 12`);
+  check('every agent is listed', await js(`document.querySelectorAll('#agentlist .arow').length`), 12);
+  check('grouped by what they do',
+    await js(`[...document.querySelectorAll('#agentlist .agroup h4')].map(h => h.textContent)`),
+    ['Intake', 'Workers', 'Reviewers', 'Result']);
+  check('four reviewer slots are offered', await js(`document.querySelectorAll('#slotpick input').length`), 4);
+  check('two of them are on',
+    await js(`[...document.querySelectorAll('#slotpick input')].filter(c => c.checked).map(c => c.value)`), ['a', 'b']);
+  check('the ones that are off say so',
+    await js(`document.querySelectorAll('#agentlist .arow.off').length`), 2);
+
+  await js(`[...document.querySelectorAll('#agentlist .arow')].find(b => b.dataset.id === 'reviewer.b').click(); true`);
+  if (!await until(`!document.querySelector('#agentedit').hidden`)) {
+    say('  DEBUG open toast=' + await js(`document.querySelector('#toast').textContent`));
+    say('  DEBUG editing=' + await js(`JSON.stringify(editingAgent && editingAgent.id)`));
+    say('  DEBUG probe=' + await js(`fetch('/api/agent?id=reviewer.b').then(r => r.status + ':' + r.headers.get('content-type')).catch(e => 'THREW ' + e.message)`));
+    say('  DEBUG paneHidden=' + await js(`document.querySelector('#settings .pane[data-pane="agents"]').hidden`));
+  }
+  check('clicking one opens its instructions',
+    await js(`document.querySelector('#ag-text').value.length > 500`), true);
+  check('and its axis', await js(`document.querySelector('#ag-axis').value`), 'Correctness');
+  check('the list gets out of the way while editing',
+    await js(`document.querySelector('#agentlist').hidden`), true);
+
+  await js(`document.querySelector('#ag-text').value = 'Check only the dates.';
+            document.querySelector('#ag-axis').value = 'Dates';
+            document.querySelector('#ag-save').click(); true`);
+  if (!await until(`document.querySelector('#agentedit').hidden`))
+    say('  DEBUG toast=' + await js(`document.querySelector('#toast').textContent`)
+      + ' saveDisabled=' + await js(`document.querySelector('#ag-save').disabled`));
+  check('saving closes the editor', await js(`document.querySelector('#agentedit').hidden`), true);
+  await until(`[...document.querySelectorAll('#agentlist .arow')]
+    .find(b => b.dataset.id === 'reviewer.b').textContent.includes('edited')`);
+  check('and the row is marked as edited',
+    await js(`[...document.querySelectorAll('#agentlist .arow')]
+      .find(b => b.dataset.id === 'reviewer.b').textContent.includes('edited')`), true);
+  // The one that matters: an editor that saves text nothing reads would look identical
+  // from the screen. Read it back out of the server, not out of the page.
+  const saved = await js(`fetch('/api/agent?id=reviewer.b').then(r => r.json()).then(r => r.instructions)`);
+  check('the server is running the edited text', saved, 'Check only the dates.');
+
+  await js(`[...document.querySelectorAll('#agentlist .arow')].find(b => b.dataset.id === 'reviewer.b').click(); true`);
+  await until(`document.querySelector('#ag-text').value.length > 500`);
+  check('reopening shows the saved text is resettable',
+    await js(`!document.querySelector('#ag-reset').hidden`), true);
+  await js(`document.querySelector('#ag-reset').click(); true`);
+  await until(`document.querySelector('#ag-text').value.length > 500`);
+  check('reset puts the shipped text back',
+    await js(`document.querySelector('#ag-text').value.length > 500`), true);
+  await js(`document.querySelector('#ag-cancel').click(); true`);
+
+  // A third reviewer, switched on the way a person would switch one on.
+  await js(`(() => { const c = [...document.querySelectorAll('#slotpick input')].find(i => i.value === 'c');
+    c.checked = true; c.onchange(); return true; })()`);
+  await until(`[...document.querySelectorAll('#slotpick input')].filter(c => c.checked).length === 3`);
+  check('a third reviewer switches on',
+    await js(`fetch('/api/agents').then(r => r.json()).then(r => r.slots)`), ['a', 'b', 'c']);
+
+  // And a single reviewer is refused, with the boxes put back rather than left lying.
+  await js(`(() => { for (const i of document.querySelectorAll('#slotpick input')) i.checked = i.value === 'a';
+    document.querySelector('#slotpick input').onchange(); return true; })()`);
+  await until(`[...document.querySelectorAll('#slotpick input')].filter(c => c.checked).length > 1`);
+  check('a single reviewer is refused and the boxes recover',
+    await js(`[...document.querySelectorAll('#slotpick input')].filter(c => c.checked).length >= 2`), true);
+  await js(`document.querySelector('#settings').close(); true`);
 
   check('no console errors throughout', errors, []);
   try { rmSync(DATA, { recursive: true, force: true }); } catch {}

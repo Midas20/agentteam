@@ -14,7 +14,11 @@ import { betaZodTool, betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta
 import { z } from 'zod/v4';
 import { readFileSync } from 'node:fs';
 import { extname, basename } from 'node:path';
-import { CLASSIFY, MODEL_PICK, WORKER, REVIEWER, RESULT } from './prompts.mjs';
+import { MODEL_PICK } from './prompts.mjs';
+// The role prompts are no longer read from prompts.mjs directly. prompts.mjs holds the
+// defaults; agents.mjs is what a stage actually runs with, because any of them can be
+// rewritten from Settings and the rewritten one has to be the one that runs.
+import { instructions as roleText } from './agents.mjs';
 import { record } from './usage.mjs';
 import { workspaceTools } from './tools.mjs';
 
@@ -85,7 +89,7 @@ export async function classify({ spec, attachments, model = 'opus' }) {
   const res = await client().beta.messages.parse({
     ...base(MODEL_ID[model] || MODEL_ID.opus, 'medium'),
     max_tokens: 16000,
-    system: CLASSIFY,
+    system: roleText('classify'),
     messages: [{ role: 'user', content: [...imageBlocks(attachments), { type: 'text', text: spec }] }],
     output_config: { effort: 'medium', format: betaZodOutputFormat(ClassifySchema) },
   });
@@ -169,7 +173,7 @@ export async function doWork({ kind, model, spec, attachments, lastDefects, atte
   if (kind === 'project') parts.push({ type: 'text', text: `Your workspace directory is: ${workspace}\nAll file paths you pass to the file tools are relative to it.` });
   if (lastDefects) parts.push({ type: 'text', text:
     `--- DEFECTS FROM ATTEMPT ${attempt} (this is attempt ${attempt + 1} of ${cap}) ---\n` +
-    `Two reviewers failed the previous attempt for these reasons. Fix exactly these. Do not\n` +
+    `The reviewers failed the previous attempt for these reasons. Fix exactly these. Do not\n` +
     `re-architect what already passed, and do not widen scope. If a defect is wrong, fix the\n` +
     `rest and say so in your notes.\n\n${lastDefects}` });
 
@@ -177,7 +181,7 @@ export async function doWork({ kind, model, spec, attachments, lastDefects, atte
     ...base(MODEL_ID[model], 'xhigh'),
     max_tokens: 32000,
     max_iterations: 60,
-    system: WORKER[kind],
+    system: roleText(`worker.${kind}`),
     tools,
     messages: [{ role: 'user', content: parts }],
   });
@@ -201,7 +205,7 @@ export async function review({ slot, model, spec, attachments, buildNotes, kind,
     ...base(MODEL_ID[model], 'xhigh'),
     max_tokens: 32000,
     max_iterations: 40,
-    system: REVIEWER[slot],
+    system: roleText(`reviewer.${slot}`),
     tools: [submit, ...WEB],
     messages: [{ role: 'user', content: [
       ...imageBlocks(attachments),
@@ -227,7 +231,7 @@ export async function writePayload({ model, output_mode, escalated, spec, attach
     run: async ({ payload }) => { captured = payload; return 'Recorded. You are done — stop here.'; },
   });
 
-  const system = escalated ? RESULT.escalated : RESULT[output_mode];
+  const system = roleText(escalated ? 'result.escalated' : `result.${output_mode}`);
   const body = escalated
     ? `--- the requirement ---\n${spec}\n\n--- what was attempted ---\n${history}\n\n--- why the reviewers failed it ---\n${reviewNotes}`
     : `--- the requirement ---\n${spec}\n\n--- the reviewed work ---\n${buildNotes}\n\n--- what the reviewers confirmed ---\n${reviewNotes}`;
