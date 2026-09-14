@@ -127,6 +127,27 @@ Two things worth knowing:
   Anything else is refused at the point you drop it, with a message, rather than being
   attached and then quietly skipped on the way to the model.
 
+**Default instructions apply to every ticket.** Settings has a box for the things that are
+true of all your work and not of any one ticket - house style, what to cite, what never to
+invent. They go in front of every requirement, at every stage of every run, which is the
+same idea as a CLAUDE.md.
+
+They are stored as plain text at `instructions.md` in the data folder, so you can equally
+edit them in an editor or keep them in version control; whatever is in that file when a
+stage runs is what that stage sees. Clearing the box removes the file, and a ticket then
+carries only its own requirement.
+
+> Each stage is told to follow them unless the ticket says otherwise, and that where the
+> two genuinely conflict the ticket wins. Without that line a ticket which deliberately
+> sets a standing rule aside gets refused by its own reviewers for breaking it.
+>
+> They are charged on every call - roughly six per ticket, and again on each retry - so
+> they are capped at 20,000 characters. Keep them to rules, not background reading.
+
+Measured end to end: with "always answer entirely in French" saved, a ticket whose own text
+said only "list three primary additive colours" delivered `Rouge / Vert / Bleu`, both
+reviewers passing.
+
 **Work and review always run on opus.** These are the two stages that produce the answer
 and judge it, and a cheaper model there is a cheaper answer. There used to be an analyst
 stage that weighed the requirement and sometimes chose a weaker worker; across twelve
@@ -257,6 +278,7 @@ Two build details worth not undoing:
     node desktop\concurrent-test.mjs                                 # several at once
     node desktop\inputs-test.mjs                                     # model pins, addenda
     node desktop\plain-test.mjs                                      # formatting removal
+    node desktop\standing-test.mjs                                   # default instructions
     node desktop\cancel-test.mjs                                     # does Stop stop?
     node desktop\orphan-test.mjs                                     # does quitting stop?
     node_modules\electron\dist\electron.exe desktop\ui-test.cjs      # every screen state

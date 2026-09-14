@@ -469,6 +469,17 @@ function paintAuth() {
   const env = STATE.env || {};
   const a = env.auth || { source: 'none', signedIn: false, profiles: [], antInstalled: false };
 
+  // Default instructions. Only written into the box when the person is not typing in it,
+  // or a state frame arriving mid-sentence would wipe what they had just written.
+  const standing = env.standing || { present: false, chars: 0, path: '', limit: 20000 };
+  const box = $('#standing');
+  if (box && document.activeElement !== box) box.value = standing.text || '';
+  const note = $('#standingstate');
+  if (note) note.textContent = standing.present
+    ? `${standing.chars.toLocaleString()} characters, on every ticket`
+    : 'None — every ticket carries only its own requirement';
+  if (box) box.title = standing.path ? `Stored at ${standing.path}` : '';
+
   // The Claude Code route. When the binary is here this is the only option that needs
   // nothing from the user, so it is stated first and plainly.
   const prov = env.provider || { mode: 'auto', active: 'api', cli: { available: false } };
@@ -532,6 +543,13 @@ function wireSettings() {
                                    body: JSON.stringify({ mode: r.value }) });
       STATE = await api('/api/state'); render(); paintAuth();
     } catch (e) { toast(e.message); }
+  });
+
+  $('#savestanding').onclick = (ev) => busy(ev.currentTarget, 'Saving…', async () => {
+    const r = await api('/api/instructions', { method: 'POST', headers: { 'content-type': 'application/json' },
+                                               body: JSON.stringify({ text: $('#standing').value }) });
+    toast(r.present ? `Saved — ${r.chars.toLocaleString()} characters on every ticket` : 'Default instructions cleared');
+    STATE = await api('/api/state'); render(); paintAuth();
   });
 
   $('#savekey').onclick = (ev) => busy(ev.currentTarget, 'Saving…', async () => {

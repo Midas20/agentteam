@@ -19,6 +19,7 @@ import { providerStatus, setMode, usable } from './provider.mjs';
 import { snapshot as usageSnapshot, reset as usageReset, onUsage, allTasks as usageByTask } from './usage.mjs';
 import { sweep } from './orphans.mjs';
 import { setModels, addAddendum, read as readInputs, forget as forgetInputs, MODELS, STAGES } from './inputs.mjs';
+import { text as standingText, save as saveStanding, status as standingStatus } from './standing.mjs';
 
 applyStoredKey();   // before the first request, and before any client is built
 
@@ -51,6 +52,7 @@ const snapshot = async () => {
     env: { credentials: credentialsPresent() || auth.signedIn || providerStatus().active === 'cli', exec: execEnabled(),
            key: keyStatus(), auth, installHint: INSTALL_HINT, releases: RELEASES,
            provider: providerStatus(), usage: usageSnapshot(),
+           standing: { ...standingStatus(), text: standingText() },
            version: process.env.RELAY_VERSION || null },
   };
 };
@@ -150,6 +152,17 @@ const server = createServer(async (req, res) => {
     // Pin a stage to a model, or hand it back to the analyst with 'auto'. It takes effect
     // on the next stage to run: a call already in flight was sent with the old choice, and
     // the only thing that stops that is Stop.
+    // The instructions that apply to every ticket. Saved as plain text on disk, so it can
+    // equally be edited in an editor or kept in version control.
+    if (p === '/api/instructions' && req.method === 'POST') {
+      const b = await readBody(req);
+      try {
+        const text = saveStanding(b.text);
+        pushState();
+        return json(res, 200, { ...standingStatus(), text });
+      } catch (e) { return json(res, 400, { error: e.message }); }
+    }
+
     if (p === '/api/models' && req.method === 'POST') {
       const b = await readBody(req);
       if (!b.id) return json(res, 400, { error: 'id is required' });

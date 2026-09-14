@@ -12,6 +12,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withStanding } from './standing.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIR = join(process.env.RELAY_DATA_DIR || HERE, '.inputs');
@@ -82,11 +83,14 @@ export function addAddendum(id, text) {
  */
 export function specWith(id, spec) {
   const { addenda } = read(id);
-  if (!addenda.length) return spec;
-  return spec + addenda.map((a, i) =>
+  // One composition point for all three layers, so every stage of every run sees the same
+  // thing: the standing instructions, then this ticket's requirement, then anything added
+  // to it while the run was already in flight.
+  if (!addenda.length) return withStanding(spec);
+  return withStanding(spec + addenda.map((a, i) =>
     `\n\n--- ADDED BY THE REQUESTER WHILE THIS TICKET WAS RUNNING (${i + 1} of ${addenda.length}) ---\n` +
     `This arrived after the work began. It is part of the requirement and overrides anything\n` +
-    `earlier that contradicts it.\n\n${a.text}`).join('');
+    `earlier that contradicts it.\n\n${a.text}`).join(''));
 }
 
 export function forget(id) {

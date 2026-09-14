@@ -25,3 +25,6 @@ usage.json
 # Local settings, which can hold an API key.
 settings.json
 *.log
+
+# The default instructions that apply to every ticket.
+instructions.md

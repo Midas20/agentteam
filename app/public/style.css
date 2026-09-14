@@ -347,3 +347,9 @@ pre{margin:0;font-size:11.5px;line-height:1.6;padding:12px 13px;overflow-x:auto;
 /* .sheet sets display:flex, which outranks the browser's default rule for [hidden].
    Without this the overlay is visible even while the page believes it is closed. */
 .sheet[hidden]{display:none}
+
+/* Default instructions, in Settings. Roomy enough to write a real house style in. */
+#standing{width:100%;font:12.5px/1.55 "JetBrains Mono",monospace;padding:9px 10px;
+  border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink);
+  resize:vertical;min-height:96px}
+#standingstate{margin-right:auto}

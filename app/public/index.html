@@ -105,6 +105,16 @@ You can paste a screenshot straight into this box — the image itself is what g
       <p id="antmissing" class="muted small warn" hidden></p>
     </section>
 
+    <section class="authopt" id="standingopt">
+      <h3>Default instructions</h3>
+      <p class="muted small">Applied to every ticket, before its own requirement — house style,
+        what to cite, what never to invent. The same idea as a CLAUDE.md, and stored as plain
+        text you can also edit in an editor.</p>
+      <textarea id="standing" rows="6" spellcheck="false"
+        placeholder="e.g. Write in British English. Cite a source for every factual claim. Never invent a file path."></textarea>
+      <div class="row end"><span id="standingstate" class="muted small"></span><button id="savestanding" type="button">Save instructions</button></div>
+    </section>
+
     <section class="authopt">
       <h3>Or paste an API key</h3>
       <input id="apikey" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
