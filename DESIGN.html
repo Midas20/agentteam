@@ -1,0 +1,705 @@
+<title>Nine-Session Relay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+:root{
+  --ground:#e8eaed; --surface:#fcfdfe; --raised:#f1f3f6;
+  --ink:#151a21; --muted:#5d6874; --faint:#8b96a3;
+  --line:#c6ced7; --hair:#dde2e8;
+  --accent:#1f4e79; --accent-soft:#e0e9f2;
+  --ok:#2f6b45; --warn:#8a5a12; --bad:#97341f;
+  --ok-bg:#e2efe7; --warn-bg:#f4ebda; --bad-bg:#f6e4de;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151a; --surface:#191e25; --raised:#20262e;
+    --ink:#e3e8ed; --muted:#96a2af; --faint:#6d7986;
+    --line:#333c46; --hair:#262d36;
+    --accent:#7fb2e0; --accent-soft:#1b2c3d;
+    --ok:#6fb78c; --warn:#d3a45f; --bad:#e08e79;
+    --ok-bg:#17281e; --warn-bg:#2a2214; --bad-bg:#2d1c17;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151a; --surface:#191e25; --raised:#20262e;
+  --ink:#e3e8ed; --muted:#96a2af; --faint:#6d7986;
+  --line:#333c46; --hair:#262d36;
+  --accent:#7fb2e0; --accent-soft:#1b2c3d;
+  --ok:#6fb78c; --warn:#d3a45f; --bad:#e08e79;
+  --ok-bg:#17281e; --warn-bg:#2a2214; --bad-bg:#2d1c17;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif; font-size:17px; line-height:1.62;
+  margin:0; padding:0;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 120px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1080px){
+  .wrap{grid-template-columns:200px minmax(0,1fr);gap:56px}
+}
+
+header.mast{grid-column:1/-1;border-bottom:2px solid var(--ink);margin-bottom:44px;padding:52px 0 22px}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+h1{font-family:Archivo,"Helvetica Neue",sans-serif;font-weight:700;font-size:clamp(34px,6vw,54px);
+  line-height:1.02;letter-spacing:-.025em;margin:0 0 16px;text-wrap:balance}
+.standfirst{font-size:20px;line-height:1.5;color:var(--muted);max-width:60ch;margin:0}
+
+nav.toc{display:none}
+@media(min-width:1080px){
+  nav.toc{display:block;position:sticky;top:0;align-self:start;padding-top:6px;max-height:100vh;overflow-y:auto}
+  nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+  nav.toc a{font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.4;color:var(--muted);
+    text-decoration:none;display:block;border-left:2px solid var(--hair);padding:2px 0 2px 10px}
+  nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent)}
+}
+
+main{min-width:0;max-width:70ch}
+section{margin:0 0 62px}
+h2{font-family:Archivo,sans-serif;font-weight:700;font-size:27px;letter-spacing:-.015em;
+  line-height:1.15;margin:0 0 6px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-family:Archivo,sans-serif;font-weight:600;font-size:18px;letter-spacing:-.005em;
+  margin:34px 0 8px;text-wrap:balance}
+h3 .num{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;color:var(--accent);
+  display:block;margin-bottom:6px;letter-spacing:.08em}
+h4{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:26px 0 8px}
+p{margin:0 0 15px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.845em;
+  background:var(--raised);border:1px solid var(--hair);border-radius:3px;padding:1px 5px;
+  word-break:break-word}
+strong{font-weight:600}
+.lede{font-size:18.5px;color:var(--muted);margin-bottom:22px}
+ul,ol.body{margin:0 0 16px;padding-left:22px}
+li{margin:0 0 8px}
+
+pre{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.66;
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 4px 4px 0;padding:16px 18px;margin:0 0 18px;overflow-x:auto;color:var(--ink)}
+pre .c{color:var(--faint)}
+pre .k{color:var(--accent);font-weight:700}
+
+.tablewrap{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-family:Archivo,sans-serif;font-size:13.5px;line-height:1.45}
+th{text-align:left;font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:11px 14px;border-bottom:1.5px solid var(--line);white-space:nowrap;
+  background:var(--raised)}
+td{padding:10px 14px;border-bottom:1px solid var(--hair);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td code{font-size:12px;background:transparent;border:none;padding:0;color:var(--accent)}
+td.mono{font-family:"JetBrains Mono",monospace;font-size:12px;white-space:nowrap}
+
+.note{border:1px solid var(--line);border-radius:4px;background:var(--surface);padding:16px 18px;margin:0 0 20px}
+.note.hard{border-left:3px solid var(--bad);background:var(--bad-bg)}
+.note.good{border-left:3px solid var(--ok);background:var(--ok-bg)}
+.note.flag{border-left:3px solid var(--warn);background:var(--warn-bg)}
+.note p:last-child{margin-bottom:0}
+.note .tag{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;display:block;margin-bottom:6px}
+.note.hard .tag{color:var(--bad)} .note.good .tag{color:var(--ok)} .note.flag .tag{color:var(--warn)}
+.note.hard,.note.good,.note.flag{font-size:15.5px;line-height:1.55}
+
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px;
+  font-family:"JetBrains Mono",monospace;font-size:12px}
+.st{border:1.5px solid var(--line);background:var(--surface);border-radius:3px;padding:4px 9px;font-weight:500}
+.st.term{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.st.f{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}
+.st.p{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+.arr{color:var(--faint);font-size:13px}
+.edge{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--faint)}
+
+figure{margin:0 0 22px}
+.figbox{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface);padding:18px}
+figure svg{display:block;min-width:700px;width:100%;height:auto}
+figcaption{font-family:Archivo,sans-serif;font-size:12.5px;color:var(--muted);margin-top:9px;line-height:1.45}
+.d-box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.d-box.em{stroke:var(--ink);stroke-width:2}
+.d-box.chip{fill:var(--raised);stroke:var(--hair)}
+.d-box.acc{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+.d-box.pass{fill:var(--ok-bg);stroke:var(--ok)}
+.d-box.failb{fill:var(--bad-bg);stroke:var(--bad)}
+.d-box.io{fill:none;stroke:var(--faint);stroke-width:1.5;stroke-dasharray:5 4}
+.d-line{stroke:var(--line);stroke-width:1.5;fill:none}
+.d-line.loop{stroke:var(--bad);stroke-dasharray:5 4}
+.d-line.rail{stroke:var(--faint);stroke-width:1.25;stroke-dasharray:3 4;fill:none}
+.d-head{fill:var(--line)} .d-head-bad{fill:var(--bad)}
+.d-t{fill:var(--ink);font-family:Archivo,sans-serif;font-weight:600;font-size:13px}
+.d-t.sm{font-size:11.5px;font-weight:500}
+.d-t.acc{fill:var(--accent);font-weight:700}
+.d-m{fill:var(--muted);font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:500}
+.d-m.bad{fill:var(--bad)} .d-m.faint{fill:var(--faint)}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);margin-top:20px;padding-top:20px;
+  font-family:Archivo,sans-serif;font-size:13px;color:var(--faint)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Design document · relay/</p>
+  <h1>Nine-Session Relay</h1>
+  <p class="standfirst">How to grow the three-session relay you already have into a pipeline that classifies an incoming requirement, picks the model the work deserves, routes it to the specialist that handles that kind of work, reviews the output twice independently, and hands back either the exact text to paste or the steps to follow.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#shape">The whole structure</a></li>
+    <li><a href="#delta">What changes</a></li>
+    <li><a href="#roles">The nine roles</a></li>
+    <li><a href="#model">Model selection</a></li>
+    <li><a href="#ledger">Ledger &amp; state machine</a></li>
+    <li><a href="#gate">The two-review gate</a></li>
+    <li><a href="#output">Two kinds of result</a></li>
+    <li><a href="#cli">CLI surface</a></li>
+    <li><a href="#record">Task record</a></li>
+    <li><a href="#envelope">Envelope format</a></li>
+    <li><a href="#images">Image requirements</a></li>
+    <li><a href="#repo">Repo-hunting rubric</a></li>
+    <li><a href="#invariants">Invariants</a></li>
+    <li><a href="#build">Build order</a></li>
+    <li><a href="#run">Running a task</a></li>
+    <li><a href="#limits">Limits</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="shape">
+<h2>The whole structure</h2>
+<p class="lede">One session takes the requirement and decides what kind of work it is. A second decides what model the work deserves. One specialist does the work on that model. Two reviewers judge it without seeing each other. A result session turns a pass into either pasteable text or a guide you follow — and a fail into a reason plus a redo.</p>
+
+<figure>
+<div class="figbox">
+<svg viewBox="0 0 850 752" role="img" aria-labelledby="topo-title">
+  <title id="topo-title">Full topology: a requirement enters the orchestrator, is classified, gets a model pinned by the model analyst, runs on one of four specialist workers, is judged by two independent reviewers, and reaches the result session as either a paste payload or a guide — or loops back to the orchestrator for a redo.</title>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto">
+      <path class="d-head" d="M0 0 L10 4 L0 8 z"/>
+    </marker>
+    <marker id="ahb" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto">
+      <path class="d-head-bad" d="M0 0 L10 4 L0 8 z"/>
+    </marker>
+  </defs>
+
+  <rect class="d-box io" x="250" y="8" width="300" height="34" rx="17"/>
+  <text class="d-t sm" x="400" y="30" text-anchor="middle">requirement — text or image</text>
+  <path class="d-line" d="M400 42 L400 66" marker-end="url(#ah)"/>
+
+  <rect class="d-box em" x="250" y="68" width="300" height="52" rx="4"/>
+  <text class="d-t" x="400" y="90" text-anchor="middle">1 · ORCHESTRATOR</text>
+  <text class="d-m" x="400" y="107" text-anchor="middle">classify: kind + output mode</text>
+  <path class="d-line" d="M400 120 L400 146" marker-end="url(#ah)"/>
+
+  <rect class="d-box acc" x="250" y="148" width="300" height="52" rx="4"/>
+  <text class="d-t acc" x="400" y="170" text-anchor="middle">2 · MODEL ANALYST</text>
+  <text class="d-m" x="400" y="187" text-anchor="middle">pins model.work and model.review</text>
+  <path class="d-line" d="M400 200 L400 226" marker-end="url(#ah)"/>
+  <text class="d-m" x="410" y="217">assign — attempt++</text>
+
+  <rect class="d-box" x="60" y="228" width="680" height="78" rx="4"/>
+  <text class="d-m" x="78" y="247">3 · SPECIALIST WORKERS — exactly one runs, chosen by kind, on the pinned model</text>
+  <rect class="d-box chip" x="78" y="258" width="152" height="32" rx="3"/>
+  <text class="d-t sm" x="154" y="278" text-anchor="middle">answer</text>
+  <rect class="d-box chip" x="242" y="258" width="152" height="32" rx="3"/>
+  <text class="d-t sm" x="318" y="278" text-anchor="middle">repo</text>
+  <rect class="d-box chip" x="406" y="258" width="152" height="32" rx="3"/>
+  <text class="d-t sm" x="482" y="278" text-anchor="middle">project</text>
+  <rect class="d-box chip" x="570" y="258" width="152" height="32" rx="3"/>
+  <text class="d-t sm" x="646" y="278" text-anchor="middle">prompt</text>
+
+  <path class="d-line" d="M400 306 L400 334"/>
+  <text class="d-m" x="410" y="324">built</text>
+  <path class="d-line" d="M220 334 L580 334"/>
+  <path class="d-line" d="M220 334 L220 358" marker-end="url(#ah)"/>
+  <path class="d-line" d="M580 334 L580 358" marker-end="url(#ah)"/>
+
+  <rect class="d-box" x="100" y="360" width="240" height="52" rx="4"/>
+  <text class="d-t" x="220" y="382" text-anchor="middle">4 · REVIEWER A</text>
+  <text class="d-m" x="220" y="399" text-anchor="middle">every requirement met?</text>
+  <rect class="d-box" x="460" y="360" width="240" height="52" rx="4"/>
+  <text class="d-t" x="580" y="382" text-anchor="middle">5 · REVIEWER B</text>
+  <text class="d-m" x="580" y="399" text-anchor="middle">is it actually correct?</text>
+
+  <path class="d-line" d="M220 412 L220 442"/>
+  <path class="d-line" d="M580 412 L580 442"/>
+  <path class="d-line" d="M220 442 L580 442"/>
+  <path class="d-line" d="M400 442 L400 466" marker-end="url(#ah)"/>
+
+  <rect class="d-box em" x="250" y="468" width="300" height="44" rx="4"/>
+  <text class="d-t sm" x="400" y="485" text-anchor="middle">both slots recorded → verdict</text>
+  <text class="d-m" x="400" y="501" text-anchor="middle">a AND b pass = pass · either fails = fail</text>
+
+  <path class="d-line" d="M400 512 L400 528"/>
+  <path class="d-line" d="M210 528 L590 528"/>
+  <path class="d-line" d="M210 528 L210 550" marker-end="url(#ah)"/>
+  <path class="d-line" d="M590 528 L590 550" marker-end="url(#ah)"/>
+
+  <rect class="d-box pass" x="90" y="552" width="240" height="50" rx="4"/>
+  <text class="d-t sm" x="210" y="573" text-anchor="middle">PASS</text>
+  <text class="d-m" x="210" y="590" text-anchor="middle">build the payload</text>
+  <rect class="d-box failb" x="470" y="552" width="240" height="50" rx="4"/>
+  <text class="d-t sm" x="590" y="573" text-anchor="middle">FAIL</text>
+  <text class="d-m" x="590" y="590" text-anchor="middle">reason out · redo in</text>
+
+  <path class="d-line loop" d="M710 577 L756 577 L756 94 L552 94" marker-end="url(#ahb)"/>
+  <text class="d-m bad" x="748" y="330" text-anchor="middle" transform="rotate(90 748 330)">redo, while under cap</text>
+
+  <path class="d-line" d="M210 602 L210 616"/>
+  <path class="d-line" d="M590 602 L590 616"/>
+  <path class="d-line" d="M210 616 L590 616"/>
+  <path class="d-line" d="M400 616 L400 630" marker-end="url(#ah)"/>
+
+  <rect class="d-box em" x="150" y="632" width="500" height="66" rx="4"/>
+  <text class="d-m" x="168" y="650">6 · RESULT — the only writer of what you receive</text>
+  <rect class="d-box chip" x="168" y="658" width="226" height="30" rx="3"/>
+  <text class="d-t sm" x="281" y="677" text-anchor="middle">paste — ticket / form text</text>
+  <rect class="d-box chip" x="406" y="658" width="226" height="30" rx="3"/>
+  <text class="d-t sm" x="519" y="677" text-anchor="middle">guide — steps you follow</text>
+
+  <path class="d-line" d="M400 698 L400 726" marker-end="url(#ah)"/>
+  <text class="d-m" x="410" y="718">to the user</text>
+
+  <path class="d-line rail" d="M798 68 L810 68 L810 698 L798 698"/>
+  <text class="d-m faint" x="826" y="383" text-anchor="middle" transform="rotate(90 826 383)">every hop reads and writes relay/tasks/&lt;id&gt;.json</text>
+</svg>
+</div>
+<figcaption>Nine sessions, one shared ledger. The worker fan-out is the only branch before the verdict; everything else is a straight line, which is what keeps the state machine small enough to enforce in code.</figcaption>
+</figure>
+
+<p>Three things in this picture carry most of the design. The four workers are <em>alternatives</em>, not stages — classification happens once and no later hop re-decides it. The fail arrow goes two places at once, because the result session needs the reason to show you and the orchestrator needs it to make the redo specific. And the dashed rail on the right is the point: no session remembers the state of a task, it reads it.</p>
+</section>
+
+<section id="delta">
+<h2>What changes from what you have</h2>
+<p>The current <code>relay/</code> is a working three-session pipeline: orchestrator → worker → reviewer → orchestrator. It already has the parts that are hardest to get right — an atomic task ledger, a state machine that rejects illegal transitions, an attempt cap the model cannot argue its way past, and an envelope format that carries <code>reply-to</code> through every hop. None of that needs rewriting.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Piece</th><th>Today</th><th>Becomes</th></tr></thead>
+<tbody>
+<tr><td class="mono">routes.json</td><td>3 keys</td><td>9 keys; several may point at the same session</td></tr>
+<tr><td class="mono">states</td><td>7</td><td>10 — adds <code>classified</code> and <code>delivered</code></td></tr>
+<tr><td class="mono">model</td><td>whatever each session happens to be</td><td>chosen per task, recorded, enforced at assign</td></tr>
+<tr><td class="mono">reviews</td><td>one <code>verdict</code> call</td><td>two slots; second one to land resolves</td></tr>
+<tr><td class="mono">worker choice</td><td>one worker</td><td><code>kind</code> on the record picks the hop</td></tr>
+<tr><td class="mono">requirement</td><td>text only</td><td><code>--attach</code> for images, copied into the task</td></tr>
+<tr><td class="mono">output</td><td>orchestrator narrates</td><td>result session writes a <code>paste</code> or <code>guide</code> payload</td></tr>
+<tr><td class="mono">roles/</td><td>3 contracts</td><td>9 — one per session, workers share a preamble</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note good">
+<span class="tag">Keep</span>
+<p>The instinct behind the existing design is the right one and should survive the expansion: <strong>anything that must not drift lives in <code>relay.mjs</code>, not in a prompt.</strong> Attempt counting, the retry cap, which hop comes next, which model is pinned, whether two reviews are in — all of it is arithmetic the CLI does and prints. A session's job is to read the printed <code>NEXT:</code> line and obey it.</p>
+</div>
+</section>
+
+<section id="roles">
+<h2>The nine roles</h2>
+<p>Each role is a separate Claude Code session with its own working directory and its own <code>CLAUDE.md</code> pointing at its contract in <code>relay/roles/</code>.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Role</th><th>routes key</th><th>Owns</th></tr></thead>
+<tbody>
+<tr><td><strong>Orchestrator</strong></td><td class="mono">orchestrator</td><td>Talks to you. Reads the requirement, assigns a <code>kind</code> and an <code>output_mode</code>, dispatches, and re-dispatches on a fail. Never does the work.</td></tr>
+<tr><td><strong>Model analyst</strong></td><td class="mono">model-analyst</td><td>Reads the same requirement and pins the model for the worker and for the reviewers. Judges difficulty, not content.</td></tr>
+<tr><td><strong>Answer worker</strong></td><td class="mono">worker-answer</td><td>Picks the selections and drafts the explanation. Bound by the DA answer-style rules already in memory.</td></tr>
+<tr><td><strong>Repo worker</strong></td><td class="mono">worker-repo</td><td>Finds the hardest real repo matching the brief. Scores candidates against a fixed rubric.</td></tr>
+<tr><td><strong>Project worker</strong></td><td class="mono">worker-project</td><td>Scaffolds a new project to spec.</td></tr>
+<tr><td><strong>Prompt worker</strong></td><td class="mono">worker-prompt</td><td>Writes prompts designed to make models fail, with the expected failure named in advance.</td></tr>
+<tr><td><strong>Reviewer A</strong></td><td class="mono">reviewer-a</td><td>Compliance. Walks the requirement clause by clause and checks each one landed.</td></tr>
+<tr><td><strong>Reviewer B</strong></td><td class="mono">reviewer-b</td><td>Correctness. Ignores the checklist and attacks the substance — verify the facts, open the links, run the thing.</td></tr>
+<tr><td><strong>Result</strong></td><td class="mono">result</td><td>The only writer of the payload. Produces the paste text or the guide, or the reason on an escalation.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Splitting the reviewers on <em>axis</em> rather than duplicating them is what makes the second review worth its cost. Two sessions running the same checklist agree with each other for the same reasons; a compliance pass and a correctness pass fail on different things. Reviewer A catches "you never answered part 3." Reviewer B catches "part 3 is answered and the answer is wrong."</p>
+
+<p>Splitting the model analyst out from the orchestrator is the same instinct applied one step earlier. The orchestrator is deciding <em>what</em> the work is, and a session that has just settled that question is poorly placed to also judge how hard it will be — the classification feels finished, so the work feels understood. A session whose only job is difficulty reads the requirement cold and asks one question about it.</p>
+
+<div class="note flag">
+<span class="tag">Fewer terminals</span>
+<p>Roles are addresses, not processes. Pointing the four worker keys at one session collapses the row to five terminals, and the contract that session loads is still chosen by <code>kind</code>. The two reviewers are the one pair you should <em>not</em> collapse — independence is the whole point, and a single session holding both opinions has already read its own first verdict. The model analyst can share a session with the orchestrator if you must, at the cost described above.</p>
+</div>
+</section>
+
+<section id="model">
+<h2>Model selection</h2>
+<p class="lede">The model is a property of the task, not of the session that happens to pick it up. Choose it once, record it, and make every downstream hop honour it.</p>
+
+<p>The analyst sits between <code>classify</code> and <code>assign</code>. It reads the requirement and any attachment, then records two picks — the model the worker runs on, and the model the reviewers run on — with a written reason for each:</p>
+
+<pre>node relay/bin/relay.mjs model t-m1x8k2 --work opus --review opus \
+     --why "single-file repo trap; the whole task is catching an inconsistency
+            two modules apart, and a miss is invisible in the output"</pre>
+
+<p><code>assign</code> then refuses to dispatch a task whose <code>model</code> is unset, exactly as it already refuses one whose <code>kind</code> is unset. That single guard is what turns the analyst from advice into a step.</p>
+
+<h4>Choosing</h4>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Pick</th><th>When</th><th>Typical here</th></tr></thead>
+<tbody>
+<tr><td class="mono">opus</td><td>Being wrong is expensive and the error would be quiet. Long multi-file reasoning, adversarial design, anything where the output looks the same whether it is right or not.</td><td>repo hunt · prompt authoring · both reviewers on a graded task</td></tr>
+<tr><td class="mono">sonnet</td><td>The shape of the work is already settled and the job is to execute it well.</td><td>project scaffolding · bounded edits · well-specified answer tasks</td></tr>
+<tr><td class="mono">haiku</td><td>Mechanical, high-volume, low-ambiguity.</td><td>reformatting · extraction · first-pass triage</td></tr>
+<tr><td class="mono">fable</td><td>Selectable alongside the others. Pin it for task kinds you have actually measured it on rather than by default.</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>Rules the analyst follows</h4>
+<ul>
+<li><strong>Reviewers are never weaker than the worker.</strong> A reviewer that cannot follow the reasoning it is checking rubber-stamps it, and you have paid for two reviews and received one.</li>
+<li><strong>A redo bumps the worker model up</strong> if a stronger one exists, or records why it did not. Re-running attempt 2 on attempt 1's model is the most common way to get an identical second failure.</li>
+<li><strong>Judge difficulty, not topic.</strong> A short question can be the hard one. What matters is how far apart the pieces of the answer are and how visible a mistake would be.</li>
+<li><strong>Write the reason.</strong> A reviewer who thinks a task was under-modelled needs something concrete to point at, and <code>--why</code> is the only record of what the analyst was thinking.</li>
+</ul>
+
+<h4>How the pin is actually applied</h4>
+<div class="note hard">
+<span class="tag">Constraint</span>
+<p>A Claude Code session cannot change its own model mid-session. Writing <code>model: opus</code> into an envelope and trusting the receiving session to honour it does nothing on its own. The pin needs a mechanism.</p>
+</div>
+
+<p><strong>Mechanism A — subagent override.</strong> The worker session reads <code>model:</code> from the envelope header and runs the actual work in a subagent with that model set, then records <code>built</code> and sends onward itself. The parent session stays on whatever model it was started with; only the reasoning that matters runs on the pinned one. The same applies to each reviewer. The one constraint is that the subagent does the work and returns — it must not make the cross-session sends, because those go out under the parent's address and the reply lands with the parent.</p>
+
+<p><strong>Mechanism B — model-pinned sessions.</strong> Bootstrap one session per role-and-model pair you actually use, set each one's model with <code>/model</code> at bootstrap, and let <code>routes.json</code> carry it: <code>worker-repo@opus</code>, <code>worker-repo@sonnet</code>. No delegation at all, at the cost of more terminals.</p>
+
+<p>Start with A. It costs one extra hop inside the worker session and keeps the session count at nine. B is worth it only once you are running the same shape of task often enough that the terminals pay for themselves.</p>
+</section>
+
+<section id="ledger">
+<h2>Ledger and state machine</h2>
+<p>One JSON file per task in <code>relay/tasks/</code>, written temp-then-rename so a peer session never reads a torn file. The transition table is the contract:</p>
+
+<pre><span class="c">// relay.mjs — anything not listed is rejected</span>
+<span class="k">const</span> LEGAL = {
+  open:       ['classified'],
+  classified: ['assigned'],
+  assigned:   ['built'],
+  built:      ['reviewing'],
+  reviewing:  ['passed', 'failed'],
+  failed:     ['assigned', 'escalated'],
+  passed:     ['delivered'],
+  escalated:  ['delivered'],
+  delivered:  [],
+};</pre>
+
+<div class="chain">
+  <span class="st">open</span><span class="arr">→</span>
+  <span class="st">classified</span><span class="arr">→</span>
+  <span class="st">assigned</span><span class="arr">→</span>
+  <span class="st">built</span><span class="arr">→</span>
+  <span class="st">reviewing</span><span class="arr">→</span>
+  <span class="st p">passed</span><span class="arr">→</span>
+  <span class="st term">delivered</span>
+</div>
+<div class="chain">
+  <span class="edge">on fail:</span>
+  <span class="st">reviewing</span><span class="arr">→</span>
+  <span class="st f">failed</span><span class="arr">→</span>
+  <span class="st">assigned</span>
+  <span class="edge">(under cap)</span>
+  <span class="arr">·</span>
+  <span class="st f">failed</span><span class="arr">→</span>
+  <span class="st">escalated</span><span class="arr">→</span>
+  <span class="st term">delivered</span>
+  <span class="edge">(at cap)</span>
+</div>
+
+<p>Two of these states are new, and both exist to give a hop somewhere unambiguous to stand.</p>
+<p><code>classified</code> separates "a requirement arrived" from "we know what kind of work this is." Without it, <code>kind</code> gets decided implicitly at assign time and there is no record of why. It is also where the model analyst does its work: the task sits in <code>classified</code> from the moment the orchestrator hands it over until <code>assign</code> finds both <code>kind</code> and <code>model</code> populated.</p>
+<p><code>delivered</code> separates "the reviewers approved" from "the thing you paste or follow exists." A task sitting in <code>passed</code> has been judged but not yet written up, and <code>relay list</code> shows you the difference at a glance.</p>
+
+<div class="note flag">
+<span class="tag">Alternative</span>
+<p>You could give the model pick its own state — <code>classified → modelled → assigned</code> — instead of guarding <code>assign</code>. It makes <code>relay list</code> show exactly which session is holding a stalled task, at the cost of one more transition to maintain. Worth doing if the analyst turns out to be where tasks get stuck; not worth it up front.</p>
+</div>
+</section>
+
+<section id="gate">
+<h2>The two-review gate</h2>
+<p>The requirement is that nothing reaches you without being checked at least twice. Enforce it structurally: the verdict is not a call any single reviewer makes.</p>
+
+<pre><span class="c">// both slots must be recorded; the second one to land resolves the task</span>
+review(a) {
+  withLock(id, () =&gt; {
+    <span class="k">const</span> t = load(id);
+    <span class="k">if</span> (t.reviews[slot]) die(`slot ${slot} already recorded this attempt`);
+    t.reviews[slot] = { result: a.result, notes: a.notes, by: a.by, at: now() };
+
+    <span class="k">const</span> other = slot === 'a' ? 'b' : 'a';
+    <span class="k">if</span> (!t.reviews[other]) {
+      save(t);
+      <span class="k">return</span> log(`NEXT: WAIT. The other reviewer resolves this task.`);
+    }
+    <span class="k">const</span> passed = t.reviews.a.result === 'pass' &amp;&amp; t.reviews.b.result === 'pass';
+    save(move(t, passed ? 'passed' : 'failed', a.by));
+    <span class="c">// ...print the routing instruction for whichever verdict landed</span>
+  });
+}</pre>
+
+<p>Three details make this hold up.</p>
+
+<h4>Independence</h4>
+<p><code>relay show &lt;id&gt; --for a</code> replaces the <code>b</code> slot with <code>"(hidden)"</code> and vice versa. A reviewer reading the task file cannot see the other's verdict, so the second review is a second opinion rather than a ratification of the first. Reviewers need the spec, the attachments and <code>build_notes</code>; they do not need each other.</p>
+
+<h4>Freshness</h4>
+<p><code>relay assign</code> clears <code>reviews</code> before incrementing the attempt. A redo is judged from scratch. Without this, a reviewer who passed attempt 1 has a stale pass sitting in the slot, and attempt 2 resolves on one real review.</p>
+
+<h4>Concurrency</h4>
+<p>Both reviewers can finish at the same moment and both will read-modify-write the same file. <code>mkdir</code> is atomic on NTFS and POSIX, so a lock directory next to the task file is enough; stale locks older than thirty seconds are reclaimed. This is the one place in the relay where genuine parallelism exists, and it is worth the twelve lines.</p>
+
+<div class="note hard">
+<span class="tag">Failure mode</span>
+<p>If you skip the lock, the interleaving that loses a review is not rare and not loud. Both reviewers load a record with an empty <code>reviews</code>, each writes its own slot, the later write wins, and the task sits in <code>reviewing</code> with one review recorded and both reviewers convinced they are done. Nothing errors. The task just stops.</p>
+</div>
+</section>
+
+<section id="output">
+<h2>Two kinds of result</h2>
+<p>What you need at the end is not always the same shape. Sometimes it is text that goes straight into a field. Sometimes it is a set of steps you have to carry out yourself, because the requirement asks for something done on a machine the relay does not touch. The record carries which, as <code>output_mode</code>, set by the orchestrator at classify time.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Mode</th><th>What the payload is</th><th>What makes it wrong</th></tr></thead>
+<tbody>
+<tr><td class="mono">paste</td><td>The exact characters that go in the ticket or the form field, and nothing else. Selections first, then each explanation block under the question it belongs to.</td><td>Any commentary that would be pasted along with it — a preamble, a sign-off, a note about what was checked. If you have to edit it before pasting, it failed.</td></tr>
+<tr><td class="mono">guide</td><td>Numbered steps you perform, each with the exact command or the exact click, and a checkpoint that tells you it worked before you move on.</td><td>A step that describes an intention rather than an action, or one with no way to tell whether it succeeded.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Setting the mode at classify time rather than at delivery is deliberate. It changes what the <em>worker</em> produces, not just how the result session writes it up — a worker that knows the output is a guide records the commands it ran and the output it saw, and a worker that knows the output is paste text writes to the form's structure. It also gives Reviewer A something concrete to check: a <code>paste</code> payload with explanatory prose in it is a compliance failure, and a <code>guide</code> with an unverifiable step is too.</p>
+
+<pre>node relay/bin/relay.mjs deliver t-m1x8k2 --mode paste --file payload.md
+node relay/bin/relay.mjs payload t-m1x8k2      <span class="c"># prints it, ready to copy</span></pre>
+
+<p><code>deliver</code> refuses if <code>--mode</code> disagrees with the <code>output_mode</code> on the record. That catches the case where the result session read the work and decided for itself what shape the answer should be, which is the one judgement call it is not entitled to make.</p>
+
+<p>For the answer worker and the result session, the DA rules already in memory are part of the contract — the voice, the two-paragraph ceiling, the twice-verified links, the numbered <code>Q1 / Q2</code> output format. Reference them from <code>roles/WORKER-ANSWER.md</code> and <code>roles/RESULT.md</code> rather than restating them, so there is one copy to correct when a project's rules change.</p>
+</section>
+
+<section id="cli">
+<h2>CLI surface</h2>
+<p>Every command prints a <code>NEXT:</code> line. That line is the routing instruction, and sessions follow it rather than reasoning about what should happen next.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Command</th><th>Run by</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td class="mono">new --title T --spec-file F [--attach IMG] [--cap N]</td><td>orchestrator</td><td>Creates the record, copies attachments into <code>tasks/&lt;id&gt;.files/</code>, prints the id.</td></tr>
+<tr><td class="mono">classify &lt;id&gt; --kind K --mode paste|guide --why "…"</td><td>orchestrator</td><td>Sets kind and output mode. Refuses without a reason.</td></tr>
+<tr><td class="mono">model &lt;id&gt; --work M --review M --why "…"</td><td>model analyst</td><td>Pins both models on the record.</td></tr>
+<tr><td class="mono">assign &lt;id&gt;</td><td>orchestrator</td><td>attempt++, clears reviews. <strong>Refuses without a kind or a model, and at cap.</strong></td></tr>
+<tr><td class="mono">built &lt;id&gt; --notes "…"</td><td>worker</td><td>Records the claim. Refuses empty notes.</td></tr>
+<tr><td class="mono">review &lt;id&gt; --slot a|b --result pass|fail --notes "…"</td><td>reviewer</td><td>Records one slot; resolves if it is the second.</td></tr>
+<tr><td class="mono">escalate &lt;id&gt;</td><td>orchestrator</td><td>Cap reached, no more redos.</td></tr>
+<tr><td class="mono">deliver &lt;id&gt; --mode paste|guide --file F</td><td>result</td><td>Stores the payload. Refuses on a mode mismatch, or on a task that still owes a redo.</td></tr>
+<tr><td class="mono">payload &lt;id&gt;</td><td>anyone</td><td>Prints the final text.</td></tr>
+<tr><td class="mono">envelope &lt;id&gt; --to model-analyst|worker|reviewer-a|reviewer-b|orchestrator|result</td><td>every hop</td><td>Builds the wire message. <code>--to worker</code> resolves through <code>kind</code>.</td></tr>
+<tr><td class="mono">show &lt;id&gt; [--for a|b]</td><td>anyone</td><td>Full record; <code>--for</code> hides the other reviewer.</td></tr>
+<tr><td class="mono">list</td><td>anyone</td><td>id · state · kind · model · attempt/cap · review slots · title.</td></tr>
+<tr><td class="mono">routes --&lt;role&gt; &lt;session&gt;</td><td>orchestrator</td><td>Pins live session names. Reports which roles are still unpinned.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Note which flags are mandatory. <code>--why</code> on classify and on model, <code>--notes</code> on built and review: each is a place where an empty string would have let a session skip the part that makes the next hop possible. The CLI refusing is cheaper than a reviewer discovering at read time that <code>build_notes</code> says "done".</p>
+</section>
+
+<section id="record">
+<h2>The task record</h2>
+<pre>{
+  "id": "t-m1x8k2", "title": "Rate the two responses on factuality",
+  "spec": "…full requirement text…",
+  "attachments": ["…/tasks/t-m1x8k2.files/form.png"],
+
+  "kind": "answer",
+  "kind_why": "asks for selections plus an explanation, no repo or build involved",
+  "output_mode": "paste",
+
+  "model": { "work": "opus", "review": "opus" },
+  "model_why": "every claim needs a source checked twice; a missed one is invisible",
+
+  "state": "reviewing", "attempt": 2, "cap": 3,
+  "build_notes": "…what the worker produced, with paths and file:line refs…",
+  "last_defects": "…the previous attempt's combined review notes…",
+  "reviews": {
+    "a": { "result": "pass", "notes": "…", "by": "rev-a-7", "at": "…" }
+  },
+  "review_notes": "", "payload": "",
+  "history": [ { "at": "…", "from": "built", "to": "reviewing",
+                 "actor": "rev-a-7", "attempt": 2, "note": "picked up" } ]
+}</pre>
+<p><code>last_defects</code> is the field that makes a redo worth running. It is populated from <code>review_notes</code> at assign time, before the reviews are cleared, and the worker envelope appends it under a heading that says to fix those specific things and leave the rest alone. A redo without it regresses the parts that already passed.</p>
+</section>
+
+<section id="envelope">
+<h2>Envelope format</h2>
+<p>Sessions address each other by name via <code>SendMessage</code>. The envelope is what gets sent, generated rather than typed so that <code>reply-to</code>, the model pin and the attachment list survive every hop.</p>
+
+<pre>[TASK t-m1x8k2 | kind=answer | mode=paste | attempt 2/3 | state=assigned]
+reply-to: qa-2-99
+next-hop: answer-session-4
+model: opus          <span class="c"># run the work in a subagent on this model</span>
+task-file: C:\…\relay\tasks\t-m1x8k2.json
+attachment: C:\…\relay\tasks\t-m1x8k2.files\form.png
+---
+Rate the two responses on factuality
+
+…spec…
+
+## DEFECTS FROM ATTEMPT 1 — fix these, do not re-architect the rest
+[review a - pass] every form field is answered…
+[review b - fail] the cited URL 404s; the claim about the 2019 ruling is
+unsupported by the source given…</pre>
+
+<p><code>reply-to</code> always names the orchestrator. It is not the sender. This matters most at the reviewer, where the incoming message's <code>from</code> is the <em>worker</em> — a reviewer that replies to <code>from</code> sends its verdict back to the worker and the loop dead-ends one hop short of you. Generating the envelope from <code>routes.json</code> instead of typing an address removes the chance to get it wrong.</p>
+</section>
+
+<section id="images">
+<h2>Requirements that arrive as images</h2>
+<p>Screenshots of a task form are a normal input, and the handling rule is short: <strong>the image travels by path, and every session opens it itself.</strong></p>
+<p><code>relay new --attach shot.png</code> copies the file into <code>tasks/&lt;id&gt;.files/</code> so it lives as long as the task does, and every envelope carries an <code>attachment:</code> line. The orchestrator reads the image to classify it. The model analyst reads it to judge difficulty. Each worker and both reviewers read the same file again.</p>
+
+<div class="note hard">
+<span class="tag">Do not</span>
+<p>Do not let the orchestrator transcribe the image into <code>spec</code> and drop the file. The transcription is the orchestrator's reading of the requirement, and if it missed a checkbox or misread a scale label, both reviewers will now check the work against the same mistake and both will pass it. The reviewers' value depends on their seeing the original.</p>
+</div>
+<p>Put the transcription in <code>spec</code> if it helps — just keep it labelled as a reading of the attachment rather than as the requirement, and keep the attachment.</p>
+</section>
+
+<section id="repo">
+<h2>The repo-hunting rubric</h2>
+<p>This is the worker where "do your best" fails, because there is no signal in the output that tells a reviewer whether the chosen repo was the hardest available or merely the first plausible one. The fix is to make the search itself the deliverable: the worker reports a scored table, and the reviewer re-derives the score.</p>
+
+<p>The contract in <code>roles/WORKER-REPO.md</code> should require at least five candidates scored before a pick, and should score each on:</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Dimension</th><th>What actually makes a model fail</th></tr></thead>
+<tbody>
+<tr><td><strong>Coexisting subsystems</strong></td><td>Two implementations of the same concern living side by side, both writing the same state. The single strongest predictor — it forces the model to hold two mental models at once.</td></tr>
+<tr><td><strong>Documentation that lies</strong></td><td>Docstrings and comments describing intent the code does not implement. A model that trusts prose over control flow answers confidently and wrongly.</td></tr>
+<tr><td><strong>Cross-cutting state</strong></td><td>Async, caching, permission layers, signal handlers — behaviour that is not local to the file you are reading.</td></tr>
+<tr><td><strong>Spread</strong></td><td>Non-test LOC and module count, so the answer is not in one file. Record the number, not an impression.</td></tr>
+<tr><td><strong>Provenance</strong></td><td>A real production codebase with real history, not a synthetic or toy repo. Stars and issue activity as a proxy.</td></tr>
+<tr><td><strong>Constraints</strong></td><td>Whatever the brief actually caps — size on disk, language, license, structure.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Two hard requirements on top of the score. The repo must be <strong>verified to resolve</strong> — clone it or hit the API, never cite one from memory. And the pick must be <strong>pinned to a commit</strong>, because an unpinned pick means line numbers in the ground truth drift out from under everyone downstream.</p>
+
+<div class="note good">
+<span class="tag">Worked example</span>
+<p>The Saleor pick in <code>GUIDE.md</code> is what a good entry looks like: a legacy <code>Payment</code> model and a newer <code>TransactionItem</code> model coexisting and writing the same order fields, docstrings that describe a branch order the code does not implement, 261,848 non-test LOC, 61 MB, pinned at <code>abfc51a</code>. Every one of those is a checkable number rather than a judgement, which is exactly why a reviewer can confirm or reject it.</p>
+</div>
+</section>
+
+<section id="invariants">
+<h2>Invariants the CLI cannot enforce</h2>
+<p>These live in <code>roles/</code> because they are about what a session chooses to do, not about what the ledger permits. Each one is a way the loop breaks quietly.</p>
+
+<ul>
+<li><strong>The worker never replies to the orchestrator.</strong> Its next hop is both reviewers, even when it is confident and even when the attempt number is high. The one exception is a genuine blocker — a contradictory spec, or an action its permissions refuse — which goes back to <code>reply-to</code> and stops there.</li>
+<li><strong>The reviewer sends to <code>reply-to</code>, not to <code>from</code>.</strong> <code>from</code> is the worker.</li>
+<li><strong>Only the reviewer that resolves the task routes anything.</strong> The first one to record reads <code>NEXT: WAIT</code> and stops. Two sessions both routing a verdict produces two redos of the same attempt.</li>
+<li><strong>The model pin is honoured, not noted.</strong> A session that reads <code>model: opus</code> and then does the work itself on whatever it was started with has silently discarded the analyst's step, and nothing downstream can tell.</li>
+<li><strong>Subagents do work and return; they do not send.</strong> A subagent's cross-session sends go out under its parent's address, and replies land with the parent — the subagent never hears back. The parent records the state transition and does the send.</li>
+<li><strong>No session performs work another session's permissions blocked.</strong> That launders your permission decision through a peer. Blocked work goes back to you.</li>
+<li><strong>Attachments travel as paths.</strong> Covered above, and it is the one most likely to be violated by a session trying to be helpful.</li>
+<li><strong>The result session writes the payload; nobody else narrates the answer to you.</strong> If the orchestrator also summarises the result, you now have two versions of the deliverable and no way to tell which one was reviewed.</li>
+</ul>
+</section>
+
+<section id="build">
+<h2>Build order</h2>
+<p>Numbered because it is genuinely sequential — each step leaves the relay in a runnable state, so you can stop after any of them.</p>
+
+<h3><span class="num">STEP 1</span>Extend <code>relay.mjs</code></h3>
+<p>Add the <code>KINDS</code> map (kind → routes key), the two new states, the <code>withLock</code> helper, and the <code>classify</code> / <code>model</code> / <code>review</code> / <code>deliver</code> / <code>payload</code> commands. Change <code>assign</code> to guard on <code>kind</code> and <code>model</code>, clear <code>reviews</code>, and populate <code>last_defects</code>. Change <code>envelope</code> to resolve <code>--to worker</code> through <code>kind</code> and to emit <code>model:</code> and <code>attachment:</code> lines. Change <code>show</code> to accept <code>--for</code>. Retire the old single-shot <code>verdict</code> command. The existing three-session flow keeps working throughout.</p>
+
+<h3><span class="num">STEP 2</span>Expand <code>routes.json</code></h3>
+<p>Nine keys. Leave them as <code>PLACEHOLDER-*</code> until sessions exist; <code>envelope</code> refuses to build a message for an unpinned hop, which is the error you want rather than a send into the void.</p>
+
+<h3><span class="num">STEP 3</span>Write the role contracts</h3>
+<p>Rewrite <code>ORCHESTRATOR.md</code> for the classify step, the hand-off to the analyst, and the split fail-routing. Write <code>MODEL-ANALYST.md</code> new, with the rubric and the four rules from above. Rewrite <code>REVIEWER.md</code> for slots and independence, then fork it into <code>REVIEWER-A.md</code> (compliance) and <code>REVIEWER-B.md</code> (correctness) — the shared half stays in <code>REVIEWER.md</code> and each fork loads it. Keep <code>WORKER.md</code> as the common preamble, including the subagent-override instruction, and add the four specialist contracts. Write <code>RESULT.md</code> new, covering both output modes.</p>
+
+<h3><span class="num">STEP 4</span>Create the session directories</h3>
+<p>One directory per role under <code>relay/sessions/</code>, each with a <code>CLAUDE.md</code> of about six lines: which contract to read before responding to any cross-session message, and the path to the CLI. Short on purpose — the contract is the thing that changes, and it should change in one place.</p>
+
+<h3><span class="num">STEP 5</span>Bootstrap</h3>
+<p>Open a Claude Code session in each directory. Ask each to run <code>ListAgents</code> and report its own session name — the listing names the current session on its first line. Pin all nine with <code>relay routes</code>. Re-pin after any restart; session names do not survive one.</p>
+
+<h3><span class="num">STEP 6</span>Dry run</h3>
+<p>Put a task through that you already know the answer to, and check four specific things: that a deliberately bad build gets caught by <em>both</em> reviewers for <em>different</em> reasons, that <code>assign</code> refuses without a model and at the cap, that the redo envelope actually carries the defects, and that the worker really did run on the pinned model. Those four are where this design earns its keep, and they are the four that fail silently if a contract is worded loosely.</p>
+</section>
+
+<section id="run">
+<h2>Running a task</h2>
+<pre><span class="c"># orchestrator</span>
+node relay/bin/relay.mjs new --title "Factuality SxS pair 14" \
+     --spec-file spec.md --attach form.png --cap 3
+node relay/bin/relay.mjs classify t-m1x8k2 --kind answer --mode paste \
+     --why "selections plus an explanation; goes straight into the form"
+node relay/bin/relay.mjs envelope t-m1x8k2 --to model-analyst
+
+<span class="c"># model analyst</span>
+node relay/bin/relay.mjs model t-m1x8k2 --work opus --review opus \
+     --why "every claim needs a source checked twice; a miss is invisible"
+node relay/bin/relay.mjs envelope t-m1x8k2 --to orchestrator
+
+<span class="c"># orchestrator</span>
+node relay/bin/relay.mjs assign t-m1x8k2
+node relay/bin/relay.mjs envelope t-m1x8k2 --to worker     <span class="c"># SendMessage verbatim</span>
+
+<span class="c"># answer worker — reads model: opus from the header, works in a subagent on it</span>
+node relay/bin/relay.mjs show t-m1x8k2
+node relay/bin/relay.mjs built t-m1x8k2 --notes "…"
+node relay/bin/relay.mjs envelope t-m1x8k2 --to reviewer-a
+node relay/bin/relay.mjs envelope t-m1x8k2 --to reviewer-b
+
+<span class="c"># reviewer b, finishing first</span>
+node relay/bin/relay.mjs show t-m1x8k2 --for b
+node relay/bin/relay.mjs review t-m1x8k2 --slot b --result fail \
+     --notes "cited URL 404s; the 2019 ruling claim is unsupported by that source"
+<span class="c"># → NEXT: WAIT. stops here.</span>
+
+<span class="c"># reviewer a, finishing second — resolves</span>
+node relay/bin/relay.mjs review t-m1x8k2 --slot a --result pass --notes "…"
+<span class="c"># → VERDICT: FAILED (1/3) · NEXT: REDO</span>
+node relay/bin/relay.mjs envelope t-m1x8k2 --to result
+node relay/bin/relay.mjs envelope t-m1x8k2 --to orchestrator</pre>
+
+<p>Add <code>notify_when_idle: true</code> to each <code>SendMessage</code> rather than polling <code>ListAgents</code> or sending "are you done?" — delivery is not acknowledged, and idle notification is how you find out a hop stalled.</p>
+</section>
+
+<section id="limits">
+<h2>Limits worth knowing before you rely on it</h2>
+<ul>
+<li><strong>Sessions are ephemeral; the ledger is not.</strong> <code>routes.json</code> needs re-pinning after any restart, but <code>tasks/</code> survives, so an in-flight task resumes by re-pinning and re-sending the envelope for its current state.</li>
+<li><strong>Delivery is not acknowledged.</strong> If a peer session has ended, the send does not land and nothing reports it. A task stuck in <code>assigned</code> for a long time usually means the worker session is gone, not that the work is hard.</li>
+<li><strong>The model pin is a convention, not a sandbox.</strong> Nothing verifies after the fact that a worker actually ran its subagent on the pinned model. If that matters, have the worker record the model it used in <code>build_notes</code> and make Reviewer A check it.</li>
+<li><strong>One worker per task.</strong> The lock covers the two reviewers, which is the only intended parallelism. Fanning one task out to several workers at once is outside what the ledger models.</li>
+<li><strong>Two reviews cost roughly what the work cost.</strong> That is the trade being made deliberately. If throughput matters more than it does today, lower <code>--cap</code> before weakening the gate — a task that fails twice is usually mis-specified rather than badly built, and a third attempt rarely fixes it.</li>
+<li><strong>The gate checks the work, not the requirement.</strong> If the requirement itself was misread at intake, both reviewers can pass a task that answers the wrong question. Classification's <code>--why</code> and the preserved attachment are the defences; neither is airtight.</li>
+</ul>
+</section>
+
+<footer>relay/DESIGN.html · extends the existing three-session relay in <code>relay/</code></footer>
+
+</main>
+</div>

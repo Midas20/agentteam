@@ -1,0 +1,1292 @@
+<title>Relay Build Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+:root{
+  --ground:#e8eaed; --surface:#fcfdfe; --raised:#f1f3f6;
+  --ink:#151a21; --muted:#5d6874; --faint:#8b96a3;
+  --line:#c6ced7; --hair:#dde2e8;
+  --accent:#1f4e79; --accent-soft:#e0e9f2;
+  --ok:#2f6b45; --warn:#8a5a12; --bad:#97341f;
+  --ok-bg:#e2efe7; --warn-bg:#f4ebda; --bad-bg:#f6e4de;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151a; --surface:#191e25; --raised:#20262e;
+    --ink:#e3e8ed; --muted:#96a2af; --faint:#6d7986;
+    --line:#333c46; --hair:#262d36;
+    --accent:#7fb2e0; --accent-soft:#1b2c3d;
+    --ok:#6fb78c; --warn:#d3a45f; --bad:#e08e79;
+    --ok-bg:#17281e; --warn-bg:#2a2214; --bad-bg:#2d1c17;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151a; --surface:#191e25; --raised:#20262e;
+  --ink:#e3e8ed; --muted:#96a2af; --faint:#6d7986;
+  --line:#333c46; --hair:#262d36;
+  --accent:#7fb2e0; --accent-soft:#1b2c3d;
+  --ok:#6fb78c; --warn:#d3a45f; --bad:#e08e79;
+  --ok-bg:#17281e; --warn-bg:#2a2214; --bad-bg:#2d1c17;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;margin:0;padding:0}
+.wrap{max-width:1220px;margin:0 auto;padding:0 24px 120px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1100px){.wrap{grid-template-columns:210px minmax(0,1fr);gap:52px}}
+
+header.mast{grid-column:1/-1;border-bottom:2px solid var(--ink);margin-bottom:40px;padding:52px 0 22px}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+.eyebrow a{color:var(--accent)}
+h1{font-family:Archivo,sans-serif;font-weight:700;font-size:clamp(32px,5.5vw,50px);line-height:1.03;
+  letter-spacing:-.025em;margin:0 0 16px;text-wrap:balance}
+.standfirst{font-size:19.5px;line-height:1.5;color:var(--muted);max-width:62ch;margin:0}
+
+nav.toc{display:none}
+@media(min-width:1100px){
+  nav.toc{display:block;position:sticky;top:0;align-self:start;padding-top:6px;max-height:100vh;overflow-y:auto}
+  nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+  nav.toc a{font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1.35;color:var(--muted);
+    text-decoration:none;display:block;border-left:2px solid var(--hair);padding:2px 0 2px 10px}
+  nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent)}
+  nav.toc li.sub a{padding-left:20px;font-size:10.5px}
+  nav.toc li.gap{height:8px}
+}
+
+main{min-width:0;max-width:78ch}
+section{margin:0 0 58px}
+h2{font-family:Archivo,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.015em;line-height:1.15;
+  margin:0 0 10px;text-wrap:balance;scroll-margin-top:16px;
+  padding-top:14px;border-top:2px solid var(--ink)}
+h2 .step{font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;color:var(--accent);
+  display:block;margin-bottom:8px;letter-spacing:.1em}
+h3{font-family:Archivo,sans-serif;font-weight:600;font-size:17.5px;margin:32px 0 8px;text-wrap:balance;
+  scroll-margin-top:16px}
+h4{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:24px 0 8px}
+p{margin:0 0 14px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.845em;background:var(--raised);
+  border:1px solid var(--hair);border-radius:3px;padding:1px 5px;word-break:break-word}
+strong{font-weight:600}
+.lede{font-size:18px;color:var(--muted);margin-bottom:20px}
+ul,ol.body{margin:0 0 15px;padding-left:22px}
+li{margin:0 0 7px}
+
+/* file card */
+.file{border:1px solid var(--line);border-radius:5px;background:var(--surface);margin:0 0 22px;overflow:hidden}
+.file > .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:9px 14px;
+  background:var(--raised);border-bottom:1px solid var(--line)}
+.fh .p{font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:700;color:var(--ink)}
+.fh .badge{font-family:"JetBrains Mono",monospace;font-size:9.5px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid}
+.badge.new{color:var(--ok);border-color:var(--ok);background:var(--ok-bg)}
+.badge.rep{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.badge.keep{color:var(--muted);border-color:var(--line);background:var(--surface)}
+.fh .n{font-family:Archivo,sans-serif;font-size:12px;color:var(--muted);margin-left:auto}
+.file pre{margin:0;border:none;border-radius:0;border-left:none;background:var(--surface)}
+
+pre{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.2px;line-height:1.62;
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 4px 4px 0;padding:15px 17px;margin:0 0 18px;overflow-x:auto;color:var(--ink);
+  tab-size:2}
+pre .c{color:var(--faint)}
+pre .k{color:var(--accent);font-weight:700}
+pre .h{font-weight:700;color:var(--ink)}
+
+.tablewrap{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-family:Archivo,sans-serif;font-size:13.5px;line-height:1.45}
+th{text-align:left;font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:10px 13px;border-bottom:1.5px solid var(--line);white-space:nowrap;background:var(--raised)}
+td{padding:9px 13px;border-bottom:1px solid var(--hair);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td code{font-size:12px;background:transparent;border:none;padding:0;color:var(--accent)}
+td.mono{font-family:"JetBrains Mono",monospace;font-size:11.5px;white-space:nowrap}
+
+.note{border:1px solid var(--line);border-radius:4px;background:var(--surface);padding:15px 17px;margin:0 0 20px;
+  font-size:15.5px;line-height:1.55}
+.note.hard{border-left:3px solid var(--bad);background:var(--bad-bg)}
+.note.good{border-left:3px solid var(--ok);background:var(--ok-bg)}
+.note.flag{border-left:3px solid var(--warn);background:var(--warn-bg)}
+.note p:last-child{margin-bottom:0}
+.note .tag{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;display:block;margin-bottom:6px}
+.note.hard .tag{color:var(--bad)} .note.good .tag{color:var(--ok)} .note.flag .tag{color:var(--warn)}
+
+.tree{font-family:"JetBrains Mono",monospace;font-size:12.2px;line-height:1.75;background:var(--surface);
+  border:1px solid var(--line);border-radius:4px;padding:16px 18px;margin:0 0 20px;overflow-x:auto}
+.tree .nw{color:var(--ok);font-weight:700}
+.tree .rp{color:var(--warn);font-weight:700}
+.tree .kp{color:var(--faint)}
+.tree .cm{color:var(--faint)}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);margin-top:20px;padding-top:20px;
+  font-family:Archivo,sans-serif;font-size:13px;color:var(--faint)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Build guide · companion to the design doc</p>
+  <h1>Relay Build Guide</h1>
+  <p class="standfirst">Every file to create or replace, with its full contents, in the order that keeps the relay runnable at each step. Paths are relative to <code>C:\Users\Administrator\Videos\Task\DA\QA-2\</code>.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#tree">Files at a glance</a></li>
+    <li><a href="#s1">1 · relay.mjs</a></li>
+    <li><a href="#s2">2 · routes.json</a></li>
+    <li><a href="#s3">3 · Role contracts</a></li>
+    <li class="sub"><a href="#r-orch">ORCHESTRATOR</a></li>
+    <li class="sub"><a href="#r-model">MODEL-ANALYST</a></li>
+    <li class="sub"><a href="#r-worker">WORKER</a></li>
+    <li class="sub"><a href="#r-answer">WORKER-ANSWER</a></li>
+    <li class="sub"><a href="#r-repo">WORKER-REPO</a></li>
+    <li class="sub"><a href="#r-project">WORKER-PROJECT</a></li>
+    <li class="sub"><a href="#r-prompt">WORKER-PROMPT</a></li>
+    <li class="sub"><a href="#r-rev">REVIEWER</a></li>
+    <li class="sub"><a href="#r-reva">REVIEWER-A</a></li>
+    <li class="sub"><a href="#r-revb">REVIEWER-B</a></li>
+    <li class="sub"><a href="#r-result">RESULT</a></li>
+    <li class="gap"></li>
+    <li><a href="#s4">4 · Session directories</a></li>
+    <li><a href="#s5">5 · Bootstrap</a></li>
+    <li><a href="#s6">6 · Dry run</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="tree">
+<h2>Files at a glance</h2>
+<p class="lede">Twenty-three files. Three already exist and get replaced, one is kept as-is, the rest are new. Nothing outside <code>relay/</code> is touched.</p>
+
+<div class="tree">
+QA-2/
+├── GUIDE.md                          <span class="cm">— untouched</span>
+├── runbook.html                      <span class="cm">— untouched</span>
+└── relay/
+    ├── README.md                     <span class="rp">REPLACE</span>  <span class="cm">point it at these docs</span>
+    ├── DESIGN.html                   <span class="kp">keep</span>     <span class="cm">the why</span>
+    ├── BUILD.html                    <span class="kp">keep</span>     <span class="cm">this page</span>
+    ├── routes.json                   <span class="rp">REPLACE</span>  <span class="cm">3 keys → 9</span>
+    ├── bin/
+    │   └── relay.mjs                 <span class="rp">REPLACE</span>  <span class="cm">the whole ledger</span>
+    ├── tasks/                        <span class="kp">auto</span>     <span class="cm">created on first task</span>
+    ├── roles/
+    │   ├── ORCHESTRATOR.md           <span class="rp">REPLACE</span>
+    │   ├── MODEL-ANALYST.md          <span class="nw">NEW</span>
+    │   ├── WORKER.md                 <span class="rp">REPLACE</span>  <span class="cm">now a shared preamble</span>
+    │   ├── WORKER-ANSWER.md          <span class="nw">NEW</span>
+    │   ├── WORKER-REPO.md            <span class="nw">NEW</span>
+    │   ├── WORKER-PROJECT.md         <span class="nw">NEW</span>
+    │   ├── WORKER-PROMPT.md          <span class="nw">NEW</span>
+    │   ├── REVIEWER.md               <span class="rp">REPLACE</span>  <span class="cm">now a shared preamble</span>
+    │   ├── REVIEWER-A.md             <span class="nw">NEW</span>
+    │   ├── REVIEWER-B.md             <span class="nw">NEW</span>
+    │   └── RESULT.md                 <span class="nw">NEW</span>
+    └── sessions/
+        ├── model-analyst/CLAUDE.md   <span class="nw">NEW</span>
+        ├── answer/CLAUDE.md          <span class="nw">NEW</span>
+        ├── repo/CLAUDE.md            <span class="nw">NEW</span>
+        ├── project/CLAUDE.md         <span class="nw">NEW</span>
+        ├── prompt/CLAUDE.md          <span class="nw">NEW</span>
+        ├── review-a/CLAUDE.md        <span class="nw">NEW</span>
+        ├── review-b/CLAUDE.md        <span class="nw">NEW</span>
+        └── result/CLAUDE.md          <span class="nw">NEW</span>
+</div>
+
+<p>The old <code>sessions/worker/</code> and <code>sessions/reviewer/</code> directories are superseded. Delete them once the new ones work, not before — they are a working fallback while you build.</p>
+
+<p>Back up the current ledger first, since step 1 replaces it wholesale:</p>
+<pre>cd C:\Users\Administrator\Videos\Task\DA\QA-2
+Copy-Item relay\bin\relay.mjs relay\bin\relay.mjs.bak
+New-Item -ItemType Directory -Force relay\tasks | Out-Null</pre>
+</section>
+
+<section id="s1">
+<h2><span class="step">STEP 1 OF 6</span>The ledger</h2>
+<p>This is the whole file. It replaces <code>relay/bin/relay.mjs</code>. Everything that must not drift — the attempt cap, the transition table, which hop is next, whether both reviews are in — is arithmetic here rather than judgement in a prompt.</p>
+
+<div class="file">
+<div class="fh"><span class="p">relay/bin/relay.mjs</span><span class="badge rep">replace</span><span class="n">~230 lines</span></div>
+<pre>#!/usr/bin/env node
+<span class="c">// relay.mjs - deterministic task ledger for the cross-session relay.
+// Routing, the retry cap, the model pin and the two-review gate are enforced HERE,
+// not by model judgement. No session has to remember the rules correctly.</span>
+<span class="k">import</span> { readFileSync, writeFileSync, renameSync, mkdirSync, rmSync, copyFileSync,
+         readdirSync, existsSync, statSync } <span class="k">from</span> 'node:fs';
+<span class="k">import</span> { dirname, join, basename, resolve } <span class="k">from</span> 'node:path';
+<span class="k">import</span> { fileURLToPath } <span class="k">from</span> 'node:url';
+
+<span class="k">const</span> ROOT   = join(dirname(fileURLToPath(import.meta.url)), '..');
+<span class="k">const</span> TASKS  = join(ROOT, 'tasks');
+<span class="k">const</span> ROUTES = join(ROOT, 'routes.json');
+
+<span class="c">// Work kinds -&gt; the session role that handles them. Classification decides routing
+// once; no later hop re-derives it.</span>
+<span class="k">const</span> KINDS = {
+  answer:  'worker-answer',    <span class="c">// pick correct answers + write the explanation</span>
+  repo:    'worker-repo',      <span class="c">// find the most complex repo matching a brief</span>
+  project: 'worker-project',   <span class="c">// create a new project / codebase</span>
+  prompt:  'worker-prompt',    <span class="c">// craft prompts that make models fail</span>
+};
+<span class="k">const</span> MODELS = ['opus', 'sonnet', 'haiku', 'fable'];
+<span class="k">const</span> MODES  = ['paste', 'guide'];
+<span class="c">// Used only to stop a reviewer being pinned weaker than the worker.
+// 'fable' is deliberately unranked - the guard is skipped rather than guessed.</span>
+<span class="k">const</span> STRENGTH = { opus: 3, sonnet: 2, haiku: 1 };
+
+<span class="k">const</span> ROLES = ['orchestrator', 'model-analyst', ...Object.values(KINDS),
+               'reviewer-a', 'reviewer-b', 'result'];
+
+<span class="c">// Legal transitions. Anything not listed is rejected.</span>
+<span class="k">const</span> LEGAL = {
+  open:       ['classified'],
+  classified: ['assigned'],
+  assigned:   ['built'],
+  built:      ['reviewing'],
+  reviewing:  ['passed', 'failed'],
+  failed:     ['assigned', 'escalated'],
+  passed:     ['delivered'],
+  escalated:  ['delivered'],
+  delivered:  [],
+};
+
+<span class="c">// die() THROWS rather than calling process.exit, because process.exit skips `finally`
+// and every refusal raised inside withLock would otherwise leak the lock directory,
+// blocking the task for 30s. The entry point below turns this back into exit code 1.</span>
+<span class="k">class</span> Refusal <span class="k">extends</span> Error {}
+<span class="k">const</span> die   = (m) =&gt; { <span class="k">throw new</span> Refusal(m); };
+<span class="k">const</span> now   = () =&gt; <span class="k">new</span> Date().toISOString();
+<span class="k">const</span> sleep = (ms) =&gt; { <span class="k">try</span> { Atomics.wait(<span class="k">new</span> Int32Array(<span class="k">new</span> SharedArrayBuffer(4)), 0, 0, ms); } <span class="k">catch</span> {} };
+
+<span class="k">function</span> args(argv) {
+  <span class="k">const</span> out = { _: [], attach: [] };
+  <span class="k">for</span> (<span class="k">let</span> i = 0; i &lt; argv.length; i++) {
+    <span class="k">if</span> (!argv[i].startsWith('--')) { out._.push(argv[i]); <span class="k">continue</span>; }
+    <span class="k">const</span> k = argv[i].slice(2);
+    <span class="k">const</span> v = (argv[i + 1] === undefined || argv[i + 1].startsWith('--')) ? <span class="k">true</span> : argv[++i];
+    <span class="k">if</span> (k === 'attach') out.attach.push(v); <span class="k">else</span> out[k] = v;
+  }
+  <span class="k">return</span> out;
+}
+<span class="k">const</span> str = (v, flag) =&gt; (v &amp;&amp; v !== <span class="k">true</span>) ? String(v) : die(`--${flag} required, with a value`);
+
+<span class="k">const</span> routes  = () =&gt; existsSync(ROUTES) ? JSON.parse(readFileSync(ROUTES, 'utf8')) : die('routes.json missing');
+<span class="k">const</span> path    = (id) =&gt; join(TASKS, `${id}.json`);
+<span class="k">const</span> filedir = (id) =&gt; join(TASKS, `${id}.files`);
+<span class="k">const</span> load    = (id) =&gt; existsSync(path(id)) ? JSON.parse(readFileSync(path(id), 'utf8'))
+                                             : die(`no such task: ${id || '&lt;none given&gt;'}`);
+
+<span class="k">function</span> save(t) {
+  mkdirSync(TASKS, { recursive: <span class="k">true</span> });
+  <span class="k">const</span> tmp = path(t.id) + '.tmp';
+  writeFileSync(tmp, JSON.stringify(t, <span class="k">null</span>, 2));
+  renameSync(tmp, path(t.id));   <span class="c">// atomic-ish: no torn reads from a peer session</span>
+  <span class="k">return</span> t;
+}
+
+<span class="c">// Two reviewers can land a verdict at the same moment. mkdir is atomic on NTFS and
+// POSIX, so it is the lock. A lock older than 30s is assumed abandoned.</span>
+<span class="k">let</span> held = <span class="k">null</span>;
+process.on('exit', () =&gt; { <span class="k">if</span> (held) { <span class="k">try</span> { rmSync(held, { recursive: <span class="k">true</span>, force: <span class="k">true</span> }); } <span class="k">catch</span> {} } });
+
+<span class="k">function</span> withLock(id, fn) {
+  <span class="k">const</span> lock = path(id) + '.lock';
+  <span class="k">for</span> (<span class="k">let</span> i = 0; i &lt; 200; i++) {
+    <span class="k">try</span> { mkdirSync(lock); } <span class="k">catch</span> {
+      <span class="k">try</span> { <span class="k">if</span> (Date.now() - statSync(lock).mtimeMs &gt; 30000) rmSync(lock, { recursive: <span class="k">true</span>, force: <span class="k">true</span> }); } <span class="k">catch</span> {}
+      sleep(50); <span class="k">continue</span>;
+    }
+    held = lock;
+    <span class="k">try</span> { <span class="k">return</span> fn(); } <span class="k">finally</span> { rmSync(lock, { recursive: <span class="k">true</span>, force: <span class="k">true</span> }); held = <span class="k">null</span>; }
+  }
+  die(`could not acquire lock for ${id} - remove ${lock} if no session is running`);
+}
+
+<span class="k">function</span> move(t, to, actor, note) {
+  <span class="k">if</span> (!LEGAL[t.state]?.includes(to)) die(`illegal transition ${t.state} -&gt; ${to} (task ${t.id})`);
+  t.history.push({ at: now(), from: t.state, to, actor, note: note || '', attempt: t.attempt });
+  t.state = to;
+  t.updated = now();
+  <span class="k">return</span> t;
+}
+<span class="k">const</span> log = (t, actor, note) =&gt; t.history.push({ at: now(), from: t.state, to: t.state, actor, note, attempt: t.attempt });
+
+<span class="k">const</span> cmds = {
+
+<span class="c">  // ---- intake ------------------------------------------------------------</span>
+  new(a) {
+    <span class="k">const</span> title = str(a.title, 'title');
+    <span class="k">const</span> spec  = a['spec-file'] ? readFileSync(a['spec-file'], 'utf8')
+                : (a.spec &amp;&amp; a.spec !== <span class="k">true</span>) ? a.spec
+                : a.attach.length ? '(requirement is in the attachment(s) - read them before classifying)'
+                : die('--spec, --spec-file or --attach required');
+    <span class="k">const</span> id = `t-${Date.now().toString(36)}`;
+    <span class="k">const</span> attachments = [];
+    <span class="k">if</span> (a.attach.length) {
+      mkdirSync(filedir(id), { recursive: <span class="k">true</span> });
+      <span class="k">for</span> (<span class="k">const</span> src of a.attach) {
+        <span class="k">if</span> (!existsSync(src)) die(`attachment not found: ${src}`);
+        <span class="k">const</span> dst = join(filedir(id), basename(src));
+        copyFileSync(resolve(src), dst);
+        attachments.push(dst);
+      }
+    }
+    save({ id, title, spec, attachments,
+           kind: <span class="k">null</span>, kind_why: '', output_mode: <span class="k">null</span>,
+           model: <span class="k">null</span>, model_why: '',
+           state: 'open', attempt: 0, cap: Number(a.cap || 3),
+           created: now(), updated: now(),
+           build_notes: '', last_defects: '', reviews: {}, review_notes: '',
+           payload: '', history: [] });
+    console.log(id);
+    <span class="k">if</span> (attachments.length) console.log(attachments.map(p =&gt; `attached: ${p}`).join('\n'));
+    console.log(`NEXT: relay classify ${id} --kind &lt;k&gt; --mode paste|guide --why "..."`);
+  },
+
+<span class="c">  // The orchestrator's judgement call, recorded so every later hop reads it
+  // instead of re-deciding it.</span>
+  classify(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="k">if</span> (!KINDS[a.kind]) die(`--kind must be one of: ${Object.keys(KINDS).join(', ')}`);
+    <span class="k">if</span> (!MODES.includes(a.mode)) die(`--mode must be one of: ${MODES.join(', ')}`);
+    str(a.why, 'why');
+    t.kind = a.kind; t.output_mode = a.mode; t.kind_why = a.why;
+    save(move(t, 'classified', a.by || 'orchestrator', `kind=${a.kind} mode=${a.mode}: ${a.why}`));
+    console.log(`${t.id} kind=${a.kind} -&gt; ${KINDS[a.kind]} | output=${a.mode}`);
+    console.log(`NEXT: relay envelope ${t.id} --to model-analyst`);
+  },
+
+<span class="c">  // The model is a property of the task, not of whichever session picks it up.
+  // No state change - the task stays in 'classified' until assign.</span>
+  model(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="k">if</span> (!MODELS.includes(a.work))   die(`--work must be one of: ${MODELS.join(', ')}`);
+    <span class="k">if</span> (!MODELS.includes(a.review)) die(`--review must be one of: ${MODELS.join(', ')}`);
+    str(a.why, 'why');
+    <span class="k">const</span> sw = STRENGTH[a.work], sr = STRENGTH[a.review];
+    <span class="k">if</span> (sw &amp;&amp; sr &amp;&amp; sr &lt; sw)
+      die(`reviewers must not be weaker than the worker (work=${a.work}, review=${a.review})`);
+    t.model = { work: a.work, review: a.review };
+    t.model_why = a.why;
+    log(t, a.by || 'model-analyst', `model work=${a.work} review=${a.review}: ${a.why}`);
+    save(t);
+    console.log(`${t.id} model work=${a.work} review=${a.review}`);
+    <span class="k">if</span> (!sw || !sr) console.log(`note: 'fable' is unranked, so the reviewer-strength guard was skipped`);
+    console.log(`NEXT: relay envelope ${t.id} --to orchestrator`);
+  },
+
+<span class="c">  // ---- the loop ----------------------------------------------------------
+  // Hands the task to the worker. Increments the attempt and clears the previous
+  // attempt's reviews, so a redo is always judged fresh.</span>
+  assign(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="k">if</span> (!t.kind)  die(`task ${t.id} is unclassified - relay classify ${t.id} --kind &lt;k&gt; --mode &lt;m&gt; --why "..."`);
+    <span class="k">if</span> (!t.model) die(`task ${t.id} has no model pinned - relay envelope ${t.id} --to model-analyst`);
+    <span class="k">if</span> (t.attempt &gt;= t.cap) die(`attempt cap ${t.cap} already reached - task is ${t.state}, escalate instead`);
+    <span class="k">if</span> (t.state === 'failed') t.last_defects = t.review_notes;
+    t.attempt++;
+    t.reviews = {}; t.review_notes = '';
+    move(t, 'assigned', a.by || 'orchestrator', a.note);
+    save(t);
+    console.log(`${t.id} assigned to ${KINDS[t.kind]} on ${t.model.work} (attempt ${t.attempt}/${t.cap})`);
+    console.log(`NEXT: relay envelope ${t.id} --to worker`);
+  },
+
+  built(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="c">// --notes-file exists because Windows caps a command line at ~32k characters and
+    // thorough build notes exceed that. Same reason deliver takes --file.</span>
+    t.build_notes = a['notes-file'] ? readFileSync(a['notes-file'], 'utf8') : str(a.notes, 'notes');
+    save(move(t, 'built', a.by || KINDS[t.kind], t.build_notes.slice(0, 300)));
+    console.log(`${t.id} built (attempt ${t.attempt}/${t.cap})`);
+    console.log(`NEXT: send to BOTH reviewers - relay envelope ${t.id} --to reviewer-a  AND  --to reviewer-b`);
+  },
+
+  reviewing(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="k">if</span> (t.state === 'reviewing') <span class="k">return</span> console.log(`${t.id} already under review`);
+    save(move(t, 'reviewing', a.by || 'reviewer', a.note));
+    console.log(`${t.id} under review`);
+  },
+
+<span class="c">  // Two independent reviews are required. The second one to land resolves the verdict.</span>
+  review(a) {
+    <span class="k">const</span> id = a._[0];
+    <span class="k">if</span> (!['a', 'b'].includes(a.slot)) die('--slot must be a or b');
+    <span class="k">if</span> (!['pass', 'fail'].includes(a.result)) die('--result must be pass or fail');
+    <span class="k">const</span> notes = a['notes-file'] ? readFileSync(a['notes-file'], 'utf8') : str(a.notes, 'notes');
+    withLock(id, () =&gt; {
+      <span class="k">const</span> t = load(id);
+      <span class="k">if</span> (t.state === 'built') move(t, 'reviewing', a.by || `reviewer-${a.slot}`, 'picked up');
+      <span class="k">if</span> (t.state !== 'reviewing') die(`task ${t.id} is ${t.state}, not awaiting review`);
+      <span class="k">if</span> (t.reviews[a.slot]) die(`slot ${a.slot} already recorded for attempt ${t.attempt}: ${t.reviews[a.slot].result}`);
+      t.reviews[a.slot] = { result: a.result, notes, by: a.by || `reviewer-${a.slot}`, at: now() };
+
+      <span class="k">const</span> other = a.slot === 'a' ? 'b' : 'a';
+      <span class="k">if</span> (!t.reviews[other]) {
+        save(t);
+        <span class="k">return</span> console.log(`${t.id} review ${a.slot} recorded (${a.result}) - slot ${other} outstanding\n`
+          + `NEXT: WAIT. Do not route anything. The other reviewer resolves this task.`);
+      }
+
+      t.review_notes = `[review a - ${t.reviews.a.result}] ${t.reviews.a.notes}\n`
+                     + `[review b - ${t.reviews.b.result}] ${t.reviews.b.notes}`;
+      <span class="k">const</span> passed = t.reviews.a.result === 'pass' &amp;&amp; t.reviews.b.result === 'pass';
+      save(move(t, passed ? 'passed' : 'failed', a.by || `reviewer-${a.slot}`,
+                passed ? 'both reviews pass' : 'at least one review failed'));
+      console.log(`${t.id} both reviews in (attempt ${t.attempt}/${t.cap})`);
+      <span class="k">if</span> (passed)
+        console.log(`VERDICT: PASSED\nNEXT: relay envelope ${t.id} --to result`);
+      <span class="k">else if</span> (t.attempt &gt;= t.cap)
+        console.log(`VERDICT: FAILED (${t.attempt}/${t.cap})\n`
+          + `NEXT: ESCALATE - cap reached. Send --to result (the reason) AND --to orchestrator.`);
+      <span class="k">else</span>
+        console.log(`VERDICT: FAILED (${t.attempt}/${t.cap})\n`
+          + `NEXT: REDO - send --to result (the reason) AND --to orchestrator (it may assign attempt ${t.attempt + 1}).`);
+    });
+  },
+
+  escalate(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    save(move(t, 'escalated', a.by || 'orchestrator', a.note));
+    console.log(`${t.id} escalated\nNEXT: relay envelope ${t.id} --to result`);
+  },
+
+<span class="c">  // ---- delivery ----------------------------------------------------------
+  // The result session is the only writer of what the user receives.</span>
+  deliver(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="k">if</span> (!MODES.includes(a.mode)) die(`--mode must be one of: ${MODES.join(', ')}`);
+    <span class="k">if</span> (a.mode !== t.output_mode)
+      die(`task output_mode is '${t.output_mode}', not '${a.mode}' - the mode is set at classify time, not here`);
+    <span class="k">if</span> (t.state === 'failed')
+      die(`task ${t.id} failed but is not escalated - a redo is still owed. Report the reason; do not deliver.`);
+    <span class="k">if</span> (!['passed', 'escalated'].includes(t.state)) die(`task ${t.id} is ${t.state} - nothing to deliver yet`);
+    <span class="k">const</span> p = a.file ? readFileSync(a.file, 'utf8') : str(a.payload, 'payload');
+    t.payload = p;
+    save(move(t, 'delivered', a.by || 'result', `${t.output_mode}, ${p.length} chars`));
+    console.log(`${t.id} delivered (${t.output_mode})\nNEXT: relay payload ${t.id}`);
+  },
+
+  payload(a) { console.log(load(a._[0]).payload || '(no payload recorded)'); },
+
+<span class="c">  // ---- wire format -------------------------------------------------------
+  // Generated, so reply-to, the model pin and the attachments survive every hop.</span>
+  envelope(a) {
+    <span class="k">const</span> t = load(a._[0]), r = routes();
+    <span class="k">let</span> to = a.to || die(`--to model-analyst|worker|reviewer-a|reviewer-b|orchestrator|result`);
+    <span class="k">if</span> (to === 'worker') to = KINDS[t.kind] || die(`task ${t.id} is unclassified`);
+    <span class="k">if</span> (!ROLES.includes(to)) die(`unknown hop: ${to}`);
+    <span class="k">const</span> hop = r[to];
+    <span class="k">if</span> (!hop || String(hop).startsWith('PLACEHOLDER')) die(`routes.json has no live session pinned for ${to}`);
+
+    <span class="k">const</span> body = (a.body &amp;&amp; a.body !== <span class="k">true</span>) ? a.body
+      : to === 'model-analyst'    ? t.spec
+      : to.startsWith('worker')   ? [t.spec, t.last_defects &amp;&amp;
+          `\n## DEFECTS FROM ATTEMPT ${t.attempt - 1} - fix these, do not re-architect the rest\n${t.last_defects}`]
+          .filter(Boolean).join('\n')
+      : to.startsWith('reviewer') ? t.build_notes
+      : to === 'result'           ? (t.state === 'passed' ? t.build_notes : t.review_notes)
+      : t.review_notes;
+
+    <span class="k">const</span> mline = t.model
+      ? `model: ${to.startsWith('reviewer') ? t.model.review : t.model.work}   # run the work in a subagent on this model\n`
+      : '';
+
+    console.log(
+`[TASK ${t.id} | kind=${t.kind} | mode=${t.output_mode} | attempt ${t.attempt}/${t.cap} | state=${t.state}]
+reply-to: ${r.orchestrator}
+next-hop: ${hop}
+${mline}task-file: ${path(t.id)}${t.attachments.length ? '\n' + t.attachments.map(p =&gt; `attachment: ${p}`).join('\n') : ''}
+---
+${t.title}
+
+${body}`);
+  },
+
+<span class="c">  // Pin the live session names once, at bootstrap. Several roles may share a session.</span>
+  routes(a) {
+    <span class="k">const</span> r = existsSync(ROUTES) ? JSON.parse(readFileSync(ROUTES, 'utf8')) : {};
+    <span class="k">for</span> (<span class="k">const</span> k of ROLES) <span class="k">if</span> (a[k]) r[k] = a[k];
+    writeFileSync(ROUTES, JSON.stringify(r, <span class="k">null</span>, 2));
+    console.log(JSON.stringify(r, <span class="k">null</span>, 2));
+    <span class="k">const</span> missing = ROLES.filter(k =&gt; !r[k] || String(r[k]).startsWith('PLACEHOLDER'));
+    <span class="k">if</span> (missing.length) console.log(`\nstill unpinned: ${missing.join(', ')}`);
+  },
+
+<span class="c">  // --for a|b hides the OTHER reviewer's notes, so the two reviews stay independent.</span>
+  show(a) {
+    <span class="k">const</span> t = load(a._[0]);
+    <span class="k">if</span> (a.for === 'a' || a.for === 'b') {
+      <span class="k">const</span> other = a.for === 'a' ? 'b' : 'a';
+      <span class="k">if</span> (t.reviews[other]) t.reviews[other] = '(hidden - reviews are independent)';
+    }
+    console.log(JSON.stringify(t, <span class="k">null</span>, 2));
+  },
+
+  list() {
+    <span class="k">if</span> (!existsSync(TASKS)) <span class="k">return</span> console.log('(no tasks)');
+    <span class="k">const</span> rows = readdirSync(TASKS).filter(f =&gt; f.endsWith('.json'))
+      .map(f =&gt; JSON.parse(readFileSync(join(TASKS, f), 'utf8')))
+      .sort((x, y) =&gt; y.created.localeCompare(x.created));
+    <span class="k">if</span> (!rows.length) <span class="k">return</span> console.log('(no tasks)');
+    <span class="k">for</span> (<span class="k">const</span> t of rows) {
+      <span class="k">const</span> rv = ['a', 'b'].map(s =&gt; t.reviews[s] ? t.reviews[s].result[0] : '-').join('');
+      console.log(`${t.id}  ${t.state.padEnd(10)} ${(t.kind || '?').padEnd(7)} `
+        + `${(t.model?.work || '?').padEnd(6)} ${t.attempt}/${t.cap} rv:${rv}  ${t.title}`);
+    }
+  },
+};
+
+<span class="k">const</span> a = args(process.argv.slice(3));
+<span class="k">try</span> {
+  (cmds[process.argv[2]] || (() =&gt; die(`usage: relay &lt;${Object.keys(cmds).join('|')}&gt; [id] [--flags]`)))(a);
+} <span class="k">catch</span> (e) {
+  <span class="k">if</span> (!(e <span class="k">instanceof</span> Refusal)) <span class="k">throw</span> e;
+  console.error(`relay: ${e.message}`);
+  process.exit(1);
+}</pre>
+</div>
+
+<p>Check it parses before going further:</p>
+<pre>node relay\bin\relay.mjs list          <span class="c"># → (no tasks)</span>
+node relay\bin\relay.mjs badcommand    <span class="c"># → usage: relay &lt;new|classify|model|...&gt;</span></pre>
+
+<div class="note flag">
+<span class="tag">Optional</span>
+<p>Add a shorthand so the commands below are shorter to type. In PowerShell: <code>function relay { node C:\Users\Administrator\Videos\Task\DA\QA-2\relay\bin\relay.mjs @args }</code> — put it in your profile if you want it to survive a restart. Every session can define its own; the ledger does not care who calls it.</p>
+</div>
+</section>
+
+<section id="s2">
+<h2><span class="step">STEP 2 OF 6</span>The routing table</h2>
+<p>Nine keys. Leave the placeholders until the sessions exist — <code>envelope</code> refuses to build a message for an unpinned hop, which is the error you want rather than a send into the void.</p>
+
+<div class="file">
+<div class="fh"><span class="p">relay/routes.json</span><span class="badge rep">replace</span></div>
+<pre>{
+  "orchestrator":   "qa-2-99",
+  "model-analyst":  "PLACEHOLDER-model-analyst",
+  "worker-answer":  "PLACEHOLDER-answer",
+  "worker-repo":    "PLACEHOLDER-repo",
+  "worker-project": "PLACEHOLDER-project",
+  "worker-prompt":  "PLACEHOLDER-prompt",
+  "reviewer-a":     "PLACEHOLDER-review-a",
+  "reviewer-b":     "PLACEHOLDER-review-b",
+  "result":         "PLACEHOLDER-result"
+}</pre>
+</div>
+<p>Replace <code>qa-2-99</code> with whatever your orchestrator session is actually called. You will overwrite all nine in step 5 anyway; this file just needs the right shape now.</p>
+</section>
+
+<section id="s3">
+<h2><span class="step">STEP 3 OF 6</span>The role contracts</h2>
+<p class="lede">Eleven files in <code>relay/roles/</code>. These are what each session loads before it acts, and they hold the rules the CLI cannot enforce.</p>
+
+<h3 id="r-orch">Orchestrator</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/ORCHESTRATOR.md</span><span class="badge rep">replace</span></div>
+<pre># Role: ORCHESTRATOR
+
+You are the entry point. The user talks to you; you never do the build work yourself.
+
+Routing table: `relay/routes.json`. Ledger: `node relay/bin/relay.mjs`.
+
+## On a new requirement from the user
+
+1. If the requirement is an image, save it and pass `--attach &lt;path&gt;`. Read the image
+   yourself before classifying. Do NOT transcribe it into the spec and drop the file —
+   downstream sessions must see the original, or they will all check the work against
+   your reading of it instead of against the requirement.
+
+       relay new --title "&lt;short&gt;" --spec-file &lt;file&gt; [--attach &lt;img&gt;] [--cap 3]
+
+2. Classify. Two decisions, both recorded:
+
+   - `--kind answer` — selections and/or an explanation to submit
+   - `--kind repo`    — find an existing repository matching a brief
+   - `--kind project` — build something new
+   - `--kind prompt`  — author prompts intended to make a model fail
+
+   - `--mode paste` — the result is text the user puts into a ticket or form
+   - `--mode guide` — the result is steps the user carries out themselves
+
+       relay classify &lt;id&gt; --kind &lt;k&gt; --mode &lt;m&gt; --why "&lt;one sentence&gt;"
+
+   If the requirement contains several separable deliverables, make several tasks.
+   One task, one kind, one output mode.
+
+3. Send to the model analyst and stop:
+
+       relay envelope &lt;id&gt; --to model-analyst
+
+## On the analyst's reply
+
+       relay assign &lt;id&gt;
+       relay envelope &lt;id&gt; --to worker
+
+Send the printed text verbatim via `SendMessage`, with `notify_when_idle: true`.
+Do NOT poll `ListAgents` and do NOT send "are you done?" messages.
+
+`assign` refuses once `attempt == cap`, and refuses if kind or model is missing.
+Never work around a refusal.
+
+## On a verdict arriving from a reviewer
+
+Re-read the task first — the ledger, not your memory, is the source of truth:
+
+       relay show &lt;id&gt;
+
+- **VERDICT: PASSED** — do nothing. The reviewer routes it to the result session.
+  Tell the user the task passed and that the payload is coming.
+- **NEXT: REDO** — decide whether the model should change. If the failure was a
+  reasoning failure rather than a slip, send it back through the analyst first:
+  `relay envelope &lt;id&gt; --to model-analyst`. Otherwise go straight to
+  `relay assign &lt;id&gt;` then `relay envelope &lt;id&gt; --to worker`. The redo envelope
+  carries the reviewers' defects automatically.
+- **NEXT: ESCALATE** — `relay escalate &lt;id&gt;`, then
+  `relay envelope &lt;id&gt; --to result`. Tell the user what was tried across all
+  attempts and what is still broken. Do not start a new attempt.
+
+## Hard rules
+
+- Never ask a peer to perform an action your own session denied or would block.
+  That launders the user's permission decision. Route it back to the user.
+- Run this in your MAIN conversation, not inside a subagent. A subagent's
+  cross-session sends go out under this session's address, and replies land here.
+- You decide routing. You never decide pass/fail, and you never write the payload.</pre>
+</div>
+
+<h3 id="r-model">Model analyst</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/MODEL-ANALYST.md</span><span class="badge new">new</span></div>
+<pre># Role: MODEL ANALYST
+
+You read a requirement and decide what model the work deserves. You judge difficulty,
+not content. You never do the work and you never talk to the user.
+
+Ledger: `node relay/bin/relay.mjs`.
+
+## On receiving an envelope
+
+1. `relay show &lt;id&gt;` — read `spec`, `kind`, `output_mode`. Open every `attachment:`
+   path in the header yourself.
+2. Decide two models and record them with a reason:
+
+       relay model &lt;id&gt; --work &lt;m&gt; --review &lt;m&gt; --why "&lt;one or two sentences&gt;"
+
+3. `relay envelope &lt;id&gt; --to orchestrator` and send it. Stop there.
+
+## Choosing
+
+- **opus** — being wrong is expensive and the error would be quiet. Reasoning that
+  spans several files or several sources. Adversarial work. Anything where the output
+  looks the same whether it is right or not.
+- **sonnet** — the shape of the work is already settled and the job is to execute it
+  well. Scaffolding, bounded edits, well-specified answer tasks.
+- **haiku** — mechanical, high-volume, low-ambiguity. Reformatting, extraction.
+- **fable** — pin it for task kinds you have actually measured it on, not by default.
+
+## Rules
+
+1. **Reviewers are never weaker than the worker.** A reviewer that cannot follow the
+   reasoning it is checking rubber-stamps it, and two reviews become one. The CLI
+   enforces this for opus/sonnet/haiku and skips the check when `fable` is involved.
+2. **A redo bumps the worker model up** if a stronger one exists, or says in `--why`
+   why it should not. Re-running attempt 2 on attempt 1's model is the most common
+   way to get an identical second failure.
+3. **Judge distance, not topic.** A short question can be the hard one. What matters
+   is how far apart the pieces of the answer are and how visible a mistake would be.
+4. **Write the reason properly.** A reviewer who thinks a task was under-modelled needs
+   something concrete to point at. `--why` is the only record of your thinking.
+
+## What you do not do
+
+You do not comment on whether the classification was right. If you think `kind` or
+`output_mode` is wrong, say so in `--why` and pin models anyway — re-classifying is the
+orchestrator's call, and it will read your note.</pre>
+</div>
+
+<h3 id="r-worker">Worker — shared preamble</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/WORKER.md</span><span class="badge rep">replace</span></div>
+<pre># Role: WORKER (common)
+
+You execute tasks. You do not judge your own output, and you never report to the user.
+Read this file first, then the specialist contract for your kind.
+
+Ledger: `node relay/bin/relay.mjs`.
+
+## On receiving an envelope
+
+1. Parse the header. Keep `reply-to` — pass it forward unchanged. Note `model:`.
+2. `relay show &lt;id&gt;` for the full spec, the attachments, and on a redo the
+   `last_defects`. Open every `attachment:` path yourself.
+3. **Honour the model pin.** Run the actual work in a subagent with that model set:
+
+       Agent({ model: "&lt;the model: value&gt;", subagent_type: "general-purpose",
+               prompt: "&lt;the task, the spec, the attachment paths&gt;" })
+
+   The subagent does the work and returns. It must NOT send cross-session messages —
+   those go out under your address and the reply lands with you, not with it. You
+   record the state change and you do the sends.
+
+   If you do the work yourself on whatever model you happen to be running, you have
+   silently discarded the analyst's step and nothing downstream can tell.
+
+4. Record what you produced. Be concrete — paths, `file:line`, numbers, URLs:
+
+       relay built &lt;id&gt; --notes "&lt;what exists now and where&gt;"
+
+   Include the model you actually ran on. Reviewer A checks it.
+
+5. Send to BOTH reviewers:
+
+       relay envelope &lt;id&gt; --to reviewer-a
+       relay envelope &lt;id&gt; --to reviewer-b
+
+## The rule that keeps the loop intact
+
+**Never reply to the orchestrator.** Your next hop is always both reviewers, even when
+you are confident and even when the attempt number is high. The orchestrator hears
+about this task only through a reviewer's verdict.
+
+The one exception: if you genuinely cannot proceed — the spec contradicts itself, or a
+required action is blocked by your permissions — do NOT ask a third session to do it
+for you. Send the blocker to `reply-to` and stop.
+
+## On a redo
+
+The envelope carries `## DEFECTS FROM ATTEMPT n`. Address exactly those. Do not
+re-architect what already passed and do not widen scope. If a defect is wrong, fix the
+rest and say so in `--notes` rather than ignoring it silently.
+
+## Output shape
+
+The envelope header carries `mode=paste` or `mode=guide`.
+
+- `paste` — produce the answer in the form's own structure, so the result session can
+  turn it into pasteable text without inventing anything.
+- `guide` — record the exact commands you ran and the exact output you saw, so the
+  result session can write steps the user can follow and verify.</pre>
+</div>
+
+<h3 id="r-answer">Answer worker</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/WORKER-ANSWER.md</span><span class="badge new">new</span></div>
+<pre># Role: WORKER — ANSWER
+
+Read `WORKER.md` first. This adds the rules for tasks that produce selections and
+written explanations.
+
+## Project rules live in memory, and you must load them by path
+
+Your session's working directory is not the QA-2 project root, so the QA-2 memory does
+NOT auto-load here. Read these before drafting anything:
+
+    C:\Users\Administrator\.claude\projects\c--Users-Administrator-Videos-Task-DA-QA-2\memory\da-qa-response-style.md
+    C:\Users\Administrator\.claude\projects\c--Users-Administrator-Videos-Task-DA-QA-2\memory\da-achilles-faq-rules.md
+    C:\Users\Administrator\.claude\projects\c--Users-Administrator-Videos-Task-DA-QA-2\memory\da-factuality-sxs-rules.md
+
+Read the one that matches the project the task came from, and `da-qa-response-style.md`
+always. They are the contract for voice, length and format, and they override any
+default instinct about how to write an evaluation.
+
+## Method
+
+1. Answer the form's questions in the form's own order. Do not reorder them.
+2. **Verify every checkable fact twice**, with web search, before grading anything.
+   Dates, rulings, version numbers, whether an event happened.
+3. **Every URL you intend to put in a comment must be opened twice**: once to fetch it,
+   once to confirm it still resolves and that the page actually says the thing you cite
+   it for. Never paste a URL reconstructed from memory or from a search-result title.
+4. Where the rules give a ladder (accuracy, severity), walk it in order and mark the
+   first that applies. Say in your notes which rung you stopped on and why.
+
+## What goes in `--notes`
+
+The reviewers judge the work, not a summary of it. Give them:
+
+- Each question and the selection you made.
+- The draft explanation text, verbatim.
+- Every URL you checked, with what it confirmed or contradicted.
+- Anything you could not resolve, named as unresolved rather than smoothed over.
+
+Do not compress this. `build_notes` is the evidence, and a reviewer who cannot re-derive
+your answer from it has to redo your research to review you.</pre>
+</div>
+
+<h3 id="r-repo">Repo worker</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/WORKER-REPO.md</span><span class="badge new">new</span></div>
+<pre># Role: WORKER — REPO
+
+Read `WORKER.md` first. This adds the rules for finding a repository that matches a
+brief, where the brief asks for the hardest one available.
+
+The search is the deliverable. A pick with no scored alternatives is unreviewable,
+because nothing in the output tells a reviewer whether you found the hardest repo or
+the first plausible one.
+
+## Method
+
+1. **Score at least five real candidates** before picking. Fewer than five is a fail.
+2. Score each on the six dimensions below. Record numbers, not impressions.
+3. **Verify the repo resolves** — clone it, or hit the GitHub API. Never cite a repo
+   from memory. A repo you cannot fetch does not exist for this purpose.
+4. **Pin a commit.** An unpinned pick means the line numbers in any ground truth drift
+   out from under everyone downstream.
+5. Check the brief's own constraints — size on disk, language, license, structure.
+
+## The rubric
+
+| Dimension | What makes a model fail |
+|---|---|
+| Coexisting subsystems | Two implementations of the same concern side by side, both writing the same state. The strongest single predictor: the model must hold two mental models at once. |
+| Documentation that lies | Docstrings describing intent the code does not implement. A model that trusts prose over control flow answers confidently and wrongly. |
+| Cross-cutting state | Async, caching, permission layers, signal handlers — behaviour not local to the file being read. |
+| Spread | Non-test LOC and module count, so the answer is not in one file. Record the number. |
+| Provenance | A real production codebase with real history. Stars and issue activity as a proxy. |
+| Constraints | Whatever the brief caps. A repo that violates one is disqualified, not penalised. |
+
+## What goes in `--notes`
+
+The scored table for all candidates, the winner, the pinned commit SHA, the measured
+numbers (LOC, file count, size on disk), and — most importantly — **the specific
+failure generator**: the named pair of files or modules that conflict, and why holding
+both at once is hard.
+
+`GUIDE.md` in the project root has a worked example: Saleor's legacy `Payment` model
+and newer `TransactionItem` model writing the same order fields, 261,848 non-test LOC,
+61 MB, pinned at `abfc51a`. Every one of those is checkable, which is why a reviewer can
+confirm or reject it. Match that standard.</pre>
+</div>
+
+<h3 id="r-project">Project worker</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/WORKER-PROJECT.md</span><span class="badge new">new</span></div>
+<pre># Role: WORKER — PROJECT
+
+Read `WORKER.md` first. This adds the rules for building something new.
+
+## Method
+
+1. Re-read the brief for the constraints that are easy to skim past: directory name
+   and casing, language and version, folder layout, what must NOT be installed, size
+   limits. These are what Reviewer A checks first and what gets missed first.
+2. Build the whole scope. If part of it is blocked, finish everything else and say
+   explicitly in `--notes` what you left out and why. Do not quietly narrow scope.
+3. Make it run. A project that has never been executed is a claim, not a deliverable.
+4. Keep the tree minimal — nothing the brief did not ask for. Extra scaffolding is
+   noise a reviewer has to read past.
+
+## What goes in `--notes`
+
+- The absolute path of what you created.
+- The tree, to a sensible depth.
+- The exact command that runs it, and the exact output you saw.
+- Every brief constraint, each with how it was satisfied.
+- Anything deliberately omitted, and why.
+
+If `mode=guide`, the commands and their real output are the raw material for the steps
+the user will follow. Record them verbatim, including anything that failed on the first
+attempt and what fixed it.</pre>
+</div>
+
+<h3 id="r-prompt">Prompt worker</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/WORKER-PROMPT.md</span><span class="badge new">new</span></div>
+<pre># Role: WORKER — PROMPT
+
+Read `WORKER.md` first. This adds the rules for authoring prompts intended to make a
+model fail.
+
+A prompt that merely looks hard is not a deliverable. The deliverable is a prompt plus
+a **named, checkable failure** — you must be able to say in advance what the model will
+get wrong and how anyone can verify that it did.
+
+## Method
+
+1. For each prompt, write down before testing: the expected failure, the ground truth,
+   and how the ground truth is verified.
+2. Prefer failures that come from structure rather than obscurity:
+   - two sources of truth in the codebase that disagree
+   - documentation that describes behaviour the code does not implement
+   - a question whose answer requires combining facts that are far apart
+   - a false premise that a helpful model will accept rather than correct
+3. Avoid trivia. A model failing on an obscure fact tells you nothing about reasoning,
+   and it is not reproducible as the world changes.
+4. Test each prompt. A prompt you did not run is a hypothesis.
+
+## What goes in `--notes`
+
+For every prompt: the prompt text verbatim, the expected failure, the ground truth with
+its `file:line` or URL, what the model actually produced when you ran it, and whether
+the predicted failure occurred. Include the prompts that did NOT fail — a reviewer needs
+to see the hit rate, and a suspiciously perfect set is itself a finding.</pre>
+</div>
+
+<h3 id="r-rev">Reviewer — shared preamble</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/REVIEWER.md</span><span class="badge rep">replace</span></div>
+<pre># Role: REVIEWER (common)
+
+You judge completed work. You do not fix it, and you do not do it yourself.
+Read this file first, then your own axis contract (`REVIEWER-A.md` or `REVIEWER-B.md`).
+
+Ledger: `node relay/bin/relay.mjs`.
+
+## On receiving a built task
+
+1. `relay reviewing &lt;id&gt;`
+2. `relay show &lt;id&gt; --for &lt;your slot&gt;` — always pass `--for`. It hides the other
+   reviewer's verdict. Read `spec`, `output_mode`, `build_notes`, and open every
+   `attachment:` path yourself.
+3. Review on **your axis only** (see your own contract). Inspect the actual artifacts.
+   `build_notes` is a claim, not evidence: open the files, follow the links, run the
+   command, re-derive the numbers.
+4. Honour the `model:` in your header — run the checking in a subagent on that model.
+5. Record your slot:
+
+       relay review &lt;id&gt; --slot &lt;a|b&gt; --result pass|fail --notes "&lt;specifics&gt;"
+
+6. Obey the printed `NEXT:` line. There are exactly three:
+   - **NEXT: WAIT** — you were first. Stop. Send nothing. The other reviewer resolves it.
+   - **NEXT: relay envelope ... --to result** — passed. Send that one envelope.
+   - **NEXT: REDO / ESCALATE** — failed. Send TWO envelopes: `--to result` (so the user
+     sees the reason) and `--to orchestrator` (so the redo can happen).
+
+## The two rules that keep the loop intact
+
+**Send to `reply-to` from the envelope header, never to the `from` of the message you
+received.** `from` is the WORKER. Replying there sends your verdict back to the worker
+and the loop dead-ends one hop short of the user. `relay envelope --to orchestrator`
+fills `reply-to` in for you from `routes.json` — use it rather than typing an address.
+
+**Only the reviewer that resolves the task routes anything.** If you got `NEXT: WAIT`
+and you send something anyway, the task gets two redos of the same attempt.
+
+## Verdict standards
+
+- `fail` needs specific defects: what is wrong, where, and why it violates the spec.
+  "Looks incomplete" is not a reviewable verdict — the redo is only as good as your notes.
+- `pass` means it meets the spec as written. Things you would have done differently are
+  not failures.
+- If the SPEC is the problem, judge the work against the spec as written and say so in
+  the notes, so the orchestrator can raise it with the user.
+- Never look at the other slot. If you have somehow seen it, say so in your notes.</pre>
+</div>
+
+<h3 id="r-reva">Reviewer A — compliance</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/REVIEWER-A.md</span><span class="badge new">new</span></div>
+<pre># Role: REVIEWER A — COMPLIANCE
+
+Read `REVIEWER.md` first. Your slot is `a`.
+
+Your axis is: **was everything that was asked for actually delivered, in the shape it
+was asked for?** You are not checking whether the answer is true. That is Reviewer B's
+job, and duplicating it is how two reviews collapse into one.
+
+## Method
+
+1. Break the requirement into a numbered list of discrete clauses. Include the ones
+   buried in passing: a folder name's casing, "at least three examples", "under 1 GB",
+   "do not install dependencies", a requested length, the form's question order.
+2. For each clause, find the evidence in the artifacts and mark it met or not met.
+   No evidence is not met.
+3. Check the output shape against `output_mode`:
+   - `paste` — is the material actually in the form's structure, ready to become text
+     the user pastes without editing?
+   - `guide` — is every step an action with a checkpoint, rather than an intention?
+4. Check the attachment. If the requirement arrived as an image, open it and confirm
+   the work answers what the image asks, not what the spec text paraphrased.
+5. Check the model. `build_notes` should name the model the worker ran on. If it does
+   not match the pin, that is a fail — the analyst's step was discarded.
+6. Check scope in the other direction too: work well beyond what was asked is a finding,
+   not a bonus.
+
+## Your notes
+
+Give the numbered clause list with met/not-met against each, and for every "not met",
+quote the requirement and say what is missing. A worker on a redo should be able to work
+straight down your list.</pre>
+</div>
+
+<h3 id="r-revb">Reviewer B — correctness</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/REVIEWER-B.md</span><span class="badge new">new</span></div>
+<pre># Role: REVIEWER B — CORRECTNESS
+
+Read `REVIEWER.md` first. Your slot is `b`.
+
+Your axis is: **is it actually right?** Assume every clause was answered and ignore
+whether the boxes were ticked. You are looking for the answer that is present, complete,
+well-formatted, and wrong.
+
+## Method
+
+1. **Re-derive, do not re-read.** Take the central claims and establish them yourself
+   from primary sources. A claim you confirmed only by reading `build_notes` again is
+   unchecked.
+2. **Open every URL.** A link that 404s, redirects somewhere else, or does not say what
+   it is cited for is a fail. Retry once without trailing punctuation before calling a
+   link broken.
+3. **Run what can be run.** Commands, tests, the project itself. If the notes claim an
+   output, reproduce it.
+4. **Re-derive the numbers.** LOC counts, file counts, sizes, scores. A number nobody
+   can reproduce is a guess with a decimal point.
+5. **Attack the strongest claim, not the weakest.** The weak ones are visible. Spend
+   your effort where a mistake would survive review.
+6. For repo tasks specifically: verify the pinned commit exists and that the named
+   failure generator is real — open both files and confirm they actually conflict.
+7. For answer tasks: apply the project rules in the QA-2 memory directory, loaded by
+   absolute path as listed in `WORKER-ANSWER.md`. Check the ladder was walked in order.
+
+## Your notes
+
+Name the claim, name what you checked it against, and quote the offending text when it
+fails. "Verified" on its own is not a review — say what you verified and how. When you
+pass, still name the two or three claims that decided it, so the pass is auditable.</pre>
+</div>
+
+<h3 id="r-result">Result</h3>
+<div class="file">
+<div class="fh"><span class="p">relay/roles/RESULT.md</span><span class="badge new">new</span></div>
+<pre># Role: RESULT
+
+You are the only session that writes what the user receives. You do not review, you do
+not fix, and you do not decide what shape the answer should take — `output_mode` on the
+record already decided that.
+
+Ledger: `node relay/bin/relay.mjs`.
+
+## On receiving an envelope
+
+`relay show &lt;id&gt;` and check `state`:
+
+- **passed** — build the payload (below), then:
+
+      relay deliver &lt;id&gt; --mode &lt;paste|guide&gt; --file &lt;file&gt;
+      relay payload &lt;id&gt;
+
+  `deliver` refuses if `--mode` disagrees with the record. If it refuses, you have
+  misread the task — do not work around it.
+
+- **failed** — a redo is still owed. Do NOT deliver. Report to the user, briefly: which
+  attempt failed, which reviewer failed it, and the defect in one or two sentences.
+  Then stop. The orchestrator is running the redo.
+
+- **escalated** — the cap is reached and there will be no more attempts. Deliver the
+  reason as the payload: what was attempted each time, what is still broken, and what
+  the user would need to decide or supply for a next attempt to be different.
+
+## Payload: `mode=paste`
+
+The exact characters that go into the ticket or the form field, and **nothing else**.
+
+- Numbered to the form's own question order: `Q1: &lt;question&gt; -&gt; &lt;answer&gt;`, with the
+  explanation or comment text under the question it belongs to.
+- No preamble, no sign-off, no note about what was checked, no "here is your answer".
+  If the user has to delete anything before pasting, the payload is wrong.
+- Voice and length come from the QA-2 memory rules. Load them by absolute path:
+
+      C:\Users\Administrator\.claude\projects\c--Users-Administrator-Videos-Task-DA-QA-2\memory\da-qa-response-style.md
+
+  and the project-specific file alongside it. Short declaratives. Two tight paragraphs
+  maximum per explanation block. The evaluator's "I". Do not list every verified fact —
+  name the one or two claims that decided the rating and stop.
+- The Achilles project, and only that one, wants casual first-person comments and a
+  note telling the user to rephrase before pasting. No other project gets that note.
+
+## Payload: `mode=guide`
+
+Numbered steps the user carries out.
+
+- One action per step, with the exact command or the exact click. No step that
+  describes an intention.
+- Every step ends with a checkpoint: what the user should see if it worked.
+- State the preconditions up front — what must be installed, open, or true first.
+- Where the worker hit a failure and fixed it, include that as a named pitfall next to
+  the step it affects.
+- Do not pad. A step the user cannot act on or verify is worse than no step.
+
+## Hard rules
+
+- Never invent content that is not in `build_notes`. If something needed for the payload
+  is missing, say so to `reply-to` and stop — do not fill the gap yourself.
+- Never soften a reviewer's failure reason into something more comfortable.
+- The payload is the deliverable. Anything you would add as commentary goes in your
+  message to the user, not in the payload.</pre>
+</div>
+</section>
+
+<section id="s4">
+<h2><span class="step">STEP 4 OF 6</span>Session directories</h2>
+<p>Eight directories, each with one small <code>CLAUDE.md</code>. Short on purpose: the contract is what changes, and it should change in one place.</p>
+
+<pre>cd C:\Users\Administrator\Videos\Task\DA\QA-2\relay\sessions
+foreach ($d in 'model-analyst','answer','repo','project','prompt','review-a','review-b','result') {
+  New-Item -ItemType Directory -Force $d | Out-Null
+}</pre>
+
+<p>Each file follows the same template. Substitute the two bracketed values from the table below.</p>
+
+<div class="file">
+<div class="fh"><span class="p">relay/sessions/&lt;dir&gt;/CLAUDE.md</span><span class="badge new">new</span><span class="n">template</span></div>
+<pre># You are the [ROLE] session in the relay.
+
+Before responding to ANY cross-session message, read these in order and follow them
+exactly. They are your role contract and they override your default behaviour.
+
+    ..\..\roles\[CONTRACTS]
+
+Ledger CLI: `node ..\..\bin\relay.mjs`
+
+You do not talk to the user directly. Your output goes to the next hop via
+`SendMessage`, addressed as your contract specifies.</pre>
+</div>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Directory</th><th>[ROLE]</th><th>[CONTRACTS]</th></tr></thead>
+<tbody>
+<tr><td class="mono">model-analyst/</td><td>MODEL ANALYST</td><td class="mono">MODEL-ANALYST.md</td></tr>
+<tr><td class="mono">answer/</td><td>ANSWER WORKER</td><td class="mono">WORKER.md, then WORKER-ANSWER.md</td></tr>
+<tr><td class="mono">repo/</td><td>REPO WORKER</td><td class="mono">WORKER.md, then WORKER-REPO.md</td></tr>
+<tr><td class="mono">project/</td><td>PROJECT WORKER</td><td class="mono">WORKER.md, then WORKER-PROJECT.md</td></tr>
+<tr><td class="mono">prompt/</td><td>PROMPT WORKER</td><td class="mono">WORKER.md, then WORKER-PROMPT.md</td></tr>
+<tr><td class="mono">review-a/</td><td>REVIEWER A</td><td class="mono">REVIEWER.md, then REVIEWER-A.md</td></tr>
+<tr><td class="mono">review-b/</td><td>REVIEWER B</td><td class="mono">REVIEWER.md, then REVIEWER-B.md</td></tr>
+<tr><td class="mono">result/</td><td>RESULT</td><td class="mono">RESULT.md</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>So <code>relay/sessions/review-b/CLAUDE.md</code> reads in full:</p>
+<pre># You are the REVIEWER B session in the relay.
+
+Before responding to ANY cross-session message, read these in order and follow them
+exactly. They are your role contract and they override your default behaviour.
+
+    ..\..\roles\REVIEWER.md, then ..\..\roles\REVIEWER-B.md
+
+Ledger CLI: `node ..\..\bin\relay.mjs`
+
+You do not talk to the user directly. Your output goes to the next hop via
+`SendMessage`, addressed as your contract specifies.</pre>
+
+<div class="note hard">
+<span class="tag">Gotcha</span>
+<p>Claude Code's per-project memory is keyed by working directory. A session started in <code>relay\sessions\answer\</code> maps to a <em>different</em> project key than <code>QA-2\</code>, so the DA rules in <code>...\projects\c--Users-Administrator-Videos-Task-DA-QA-2\memory\</code> will <strong>not</strong> auto-load there. That is why <code>WORKER-ANSWER.md</code> and <code>RESULT.md</code> name those files by absolute path and tell the session to read them. Do not drop those lines.</p>
+</div>
+
+<p>Finally, replace the README so the next person finds these docs rather than the old three-session description:</p>
+
+<div class="file">
+<div class="fh"><span class="p">relay/README.md</span><span class="badge rep">replace</span></div>
+<pre># relay — cross-session task pipeline
+
+    user → ORCHESTRATOR → MODEL ANALYST → WORKER → REVIEWER A + B → RESULT → user
+                  ↑                                       │
+                  └──────────── redo, while under cap ─────┘
+
+Nine Claude Code sessions on this machine, wired with `SendMessage`. Routing, the retry
+cap, the model pin and the two-review gate live in `bin/relay.mjs` and `tasks/*.json`,
+so no session has to remember them correctly.
+
+- **DESIGN.html** — why it is shaped this way, and what breaks if you change it.
+- **BUILD.html**  — every file, its contents, and the bootstrap order.
+
+## Quick reference
+
+    node bin/relay.mjs list                 # everything in flight
+    node bin/relay.mjs show &lt;id&gt;            # one task, full history
+    node bin/relay.mjs routes --&lt;role&gt; &lt;s&gt;  # re-pin after a restart
+
+Session names do not survive a restart; `routes.json` needs re-pinning each time. The
+`tasks/` ledger does survive, so an in-flight task resumes by re-pinning and re-sending
+the envelope for its current state.</pre>
+</div>
+</section>
+
+<section id="s5">
+<h2><span class="step">STEP 5 OF 6</span>Bootstrap</h2>
+<p>Do this once per set of sessions, and again after any restart.</p>
+
+<ol class="body">
+<li><strong>Open eight new Claude Code sessions</strong>, one with its working directory set to each folder under <code>relay/sessions/</code>. Your existing QA-2 session stays as the orchestrator.</li>
+<li><strong>Ask each new session to run <code>ListAgents</code> and report its own name.</strong> The listing names the current session on its first line. Nothing else — do not give them work yet.</li>
+<li><strong>Pin all nine names</strong> from the orchestrator:
+<pre>node relay\bin\relay.mjs routes `
+  --orchestrator   &lt;this session&gt; `
+  --model-analyst  &lt;name&gt; `
+  --worker-answer  &lt;name&gt; `
+  --worker-repo    &lt;name&gt; `
+  --worker-project &lt;name&gt; `
+  --worker-prompt  &lt;name&gt; `
+  --reviewer-a     &lt;name&gt; `
+  --reviewer-b     &lt;name&gt; `
+  --result         &lt;name&gt;</pre>
+It prints the table and lists anything still unpinned. Fix that before running a task.</li>
+<li><strong>Confirm each session loaded its contract.</strong> Ask one question — "what is your slot, and where do you send a verdict?" A reviewer that answers "to the worker" has not read <code>REVIEWER.md</code>.</li>
+</ol>
+
+<div class="note flag">
+<span class="tag">Fewer terminals</span>
+<p>Roles are addresses, not processes. Pointing all four worker keys at one session collapses this to five terminals, and <code>kind</code> still selects the contract that session loads. Do not collapse <code>reviewer-a</code> and <code>reviewer-b</code> — a single session holding both opinions has already read its own first verdict, and the gate becomes theatre.</p>
+</div>
+</section>
+
+<section id="s6">
+<h2><span class="step">STEP 6 OF 6</span>Dry run</h2>
+<p>Put through a task you already know the answer to, and deliberately break it. Four things are worth proving, because each one fails silently if a contract is worded loosely.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Prove</th><th>How</th><th>Expected</th></tr></thead>
+<tbody>
+<tr><td>The cap holds</td><td class="mono">relay new --cap 1 … then assign twice</td><td>Second <code>assign</code> exits non-zero: <em>attempt cap 1 already reached</em>.</td></tr>
+<tr><td>The model guard holds</td><td class="mono">classify, then assign without running model</td><td><em>task … has no model pinned</em>.</td></tr>
+<tr><td>Reviews are independent and both required</td><td>Have A pass and B fail</td><td>First prints <code>NEXT: WAIT</code> and sends nothing. Second prints <code>VERDICT: FAILED</code>. <code>show --for a</code> hides B.</td></tr>
+<tr><td>The redo carries defects</td><td>After the fail, <code>assign</code> then <code>envelope --to worker</code></td><td>Envelope contains <code>## DEFECTS FROM ATTEMPT 1</code> with both reviewers' notes.</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Then one honest end-to-end pass on real work, and check the thing no command can check for you: that Reviewer A and Reviewer B failed it for <em>different</em> reasons. If they keep agreeing clause-for-clause, the axis split has collapsed and B is re-running A's checklist — tighten <code>REVIEWER-B.md</code> until it stops.</p>
+</section>
+
+<section id="trouble">
+<h2>Troubleshooting</h2>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Task sits in <code>assigned</code> forever</td><td>The worker session ended. Delivery is not acknowledged, so nothing reported it.</td><td>Re-pin routes, re-send <code>envelope --to worker</code>. Use <code>notify_when_idle: true</code> on sends.</td></tr>
+<tr><td>Verdict never reaches the orchestrator</td><td>A reviewer replied to <code>from</code> (the worker) instead of <code>reply-to</code>.</td><td>It is in <code>REVIEWER.md</code>. Re-send with <code>envelope --to orchestrator</code>.</td></tr>
+<tr><td>Task stuck in <code>reviewing</code>, one slot filled</td><td>The second reviewer never got the envelope, or crashed mid-review.</td><td><code>show &lt;id&gt;</code> to see which slot is empty; re-send that reviewer's envelope.</td></tr>
+<tr><td><em>could not acquire lock</em></td><td>A session died holding it.</td><td>Delete <code>relay\tasks\&lt;id&gt;.json.lock</code>. It also self-clears after 30s.</td></tr>
+<tr><td>Two redos of the same attempt</td><td>Both reviewers routed; the first ignored <code>NEXT: WAIT</code>.</td><td>The attempt counter is authoritative — <code>show &lt;id&gt;</code> and continue from there.</td></tr>
+<tr><td><em>illegal transition</em></td><td>A hop ran out of order, usually after a manual edit.</td><td>Read <code>history</code> in the task file. Do not hand-edit state; re-run the missing command.</td></tr>
+<tr><td>Both reviewers pass obviously wrong work</td><td>Intake misread the requirement, so both checked against the same mistake.</td><td>Read <code>kind_why</code> and open the attachment. Re-classify and start a new task.</td></tr>
+<tr><td>Answer-worker output is in the wrong voice</td><td>Session cwd is not QA-2, so the memory rules never loaded.</td><td>Confirm the absolute paths in <code>WORKER-ANSWER.md</code> are present and correct.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<footer>relay/BUILD.html · companion to relay/DESIGN.html</footer>
+
+</main>
+</div>
