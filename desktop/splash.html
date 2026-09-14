@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Starting Claude Workflow</title>
+<style>
+  :root{ --ground:#e8eaed; --surface:#fff; --ink:#14181c; --muted:#5a646e;
+         --line:#d5dae0; --accent:#1f6467; }
+  @media (prefers-color-scheme: dark){
+    :root{ --ground:#12161a; --surface:#1a1f25; --ink:#e3e8ec; --muted:#9aa5af;
+           --line:#2a323a; --accent:#6fb3b2; }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--surface);color:var(--ink);
+       font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;
+       border:1px solid var(--line);border-radius:8px;overflow:hidden;
+       display:flex;flex-direction:column;justify-content:center;padding:24px 26px;
+       -webkit-app-region:drag;user-select:none}
+  h1{margin:0 0 3px;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .sub{margin:0 0 18px;color:var(--muted);font-size:12px}
+  .status{margin:0;font-size:13px;color:var(--ink);min-height:1.5em;
+          font-variant-numeric:tabular-nums}
+  .track{margin-top:12px;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+  .track i{display:block;height:100%;width:34%;border-radius:2px;background:var(--accent);
+           animation:slide 1.25s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+  @media (prefers-reduced-motion:reduce){ .track i{animation:none;width:100%;opacity:.5} }
+  .note{margin:14px 0 0;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <h1>Claude Workflow</h1>
+  <p class="sub">Starting up</p>
+  <p class="status" id="s">Starting</p>
+  <div class="track"><i></i></div>
+  <p class="note" id="n"></p>
+<script>
+  const s = document.getElementById('s');
+  const n = document.getElementById('n');
+  const t0 = Date.now();
+  // A portable build unpacks itself on every launch, so a long wait here is expected
+  // rather than a fault. Say so, but only once it has actually been long — saying it
+  // immediately would make a fast start look slow.
+  setInterval(() => {
+    const secs = Math.round((Date.now() - t0) / 1000);
+    if (secs >= 8) n.textContent = `${secs}s — the portable build unpacks itself on every launch.`;
+  }, 1000);
+  try { window.relay?.onBoot?.((text) => { s.textContent = text; }); } catch {}
+</script>
+</body>
+</html>
