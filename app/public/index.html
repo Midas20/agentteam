@@ -49,7 +49,7 @@ You can paste a screenshot straight into this box — the image itself is what g
         </div>
 
         <details id="modelpins" class="pins">
-          <summary>Models <span class="opt">the analyst chooses unless you say otherwise</span></summary>
+          <summary>Models <span class="opt">opus for work and review unless you say otherwise</span></summary>
           <div class="pinrow"><label for="pin-classify">Classify</label><select id="pin-classify"></select></div>
           <div class="pinrow"><label for="pin-work">Do the work</label><select id="pin-work"></select></div>
           <div class="pinrow"><label for="pin-review">Review</label><select id="pin-review"></select></div>
@@ -60,8 +60,8 @@ You can paste a screenshot straight into this box — the image itself is what g
         </details>
 
         <button type="submit" id="create">Run it</button>
-        <p class="hint muted small">It decides the work type, picks the model, does the work,
-          reviews it twice, and retries on a failure. You get the result to copy.</p>
+        <p class="hint muted small">It decides the work type, does the work, has independent
+          reviewers check it, and retries on a failure. You get the result to copy.</p>
         <p id="formerr" class="err" hidden></p>
       </form>
     </section>
@@ -75,8 +75,8 @@ You can paste a screenshot straight into this box — the image itself is what g
   <main id="detail">
     <div class="placeholder">
       <p>Paste a requirement to start.</p>
-      <p class="muted small">Nine steps run without you: classify, pick a model, do the work,
-        two independent reviews, retry on failure, then write what you paste.</p>
+      <p class="muted small">It runs without you: classify, do the work, independent reviews
+        on separate axes, retry on failure, then write what you paste.</p>
     </div>
   </main>
 </div>

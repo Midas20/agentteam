@@ -3,8 +3,8 @@
     setx ANTHROPIC_API_KEY sk-ant-...     (once; then open a new terminal)
     node relay/app/server.mjs             →  http://localhost:7392
 
-Paste a requirement. The app classifies it, picks a model, does the work, reviews it
-twice independently, retries on a failure, and gives you the result to copy. No sessions
+Paste a requirement. The app classifies it, does the work, has two to four independent
+reviewers check it, retries on a failure, and gives you the result to copy. No sessions
 to open, no envelopes to paste.
 
 ## What runs, in order
@@ -12,16 +12,19 @@ to open, no envelopes to paste.
 | Step | What happens | Model |
 |---|---|---|
 | 1 · Classify | Decides `kind` (answer / repo / project / prompt) and `output_mode` (paste / guide) | opus, medium effort |
-| 2 · Model | Picks a model for the worker and one for the reviewers, with a written reason | opus, medium effort |
-| 3 · Work | Does the job with web search + fetch, and file tools for `project` | as picked, xhigh effort |
-| 4 · Review ×2 | Two reviewers run **concurrently** from the worker's notes alone | as picked, xhigh effort |
-| 5 · Verdict | Both pass → on. Either fails → retry with the defects, up to the cap | — |
-| 6 · Result | Writes the `paste` text or the `guide` steps, or the reason it failed | as picked, high effort |
+| 2 · Model | Records the models: opus for work and review unless you pin something else | — |
+| 3 · Work | Does the job with web search + fetch, and file tools for `project` | opus, xhigh effort |
+| 4 · Review ×N | Two to four reviewers run **concurrently** from the worker's notes alone | opus, xhigh effort |
+| 5 · Verdict | All pass → on. Any one fails → retry with the defects, up to the cap | — |
+| 6 · Result | Writes the `paste` text or the `guide` steps, or the reason it failed | reviewer model, high effort |
 
-The two reviewers split by **axis**, not by duplication. Reviewer A checks compliance —
+The reviewers split by **axis**, not by duplication. Reviewer A checks compliance —
 was everything asked for delivered, in the shape it was asked for. Reviewer B checks
-correctness — is the answer that's present actually right. They fail on different things,
-which is what makes the second review worth its cost.
+correctness — is the answer that's present actually right. Two more can be switched on in
+Settings ▸ Agent structure: C checks evidence (could a stranger re-derive it from the
+notes), D checks risk (attacks whatever would cost most if wrong). Every agent's
+instructions can be rewritten there too. They fail on different things, which is what
+makes each extra review worth its cost; the ledger never accepts fewer than two.
 
 Their independence is structural here, not a rule someone follows: both are called with
 the worker's notes and nothing else, in parallel, so neither can see the other's verdict.
@@ -29,9 +32,9 @@ the worker's notes and nothing else, in parallel, so neither can see the other's
 ## It drives the same ledger
 
 Every state change goes through `bin/relay.mjs` as a child process. The app never edits a
-task file. That means the attempt cap, the state machine, the two-review gate and the
+task file. That means the attempt cap, the state machine, the review gate and the
 reviewer-strength guard all still apply, and `relay list` / `relay show` still work on
-tasks the app created. When the ledger refuses, the engine obeys — if the analyst picks a
+tasks the app created. When the ledger refuses, the engine obeys — if you pin a
 reviewer weaker than the worker, the ledger rejects it and the engine raises the
 *reviewers* rather than lowering the bar, and says so in the log.
 
@@ -59,8 +62,8 @@ have run, so the notes stay complete.
 ## Cost
 
 Every run is real API spend, and a task that fails review costs roughly double — the
-retry re-runs the worker and both reviewers. The attempt cap is your ceiling: at `--cap 3`
-the worst case is three workers plus six reviews. Lower the cap in the form before
+retry re-runs the worker and every reviewer. The attempt cap is your ceiling: at `--cap 3`
+with two reviewers the worst case is three workers plus six reviews. Lower the cap in the form before
 lowering your standards; a task that fails twice is usually mis-specified rather than
 badly built.
 

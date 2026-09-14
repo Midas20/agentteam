@@ -165,8 +165,8 @@ function renderDetail() {
     // for something that cannot run yet.
     const needsAuth = !STATE.env?.credentials;
     main.innerHTML = `<div class="placeholder"><p>Paste a requirement to start.</p>
-      <p class="muted small">Nine steps run without you: classify, pick a model, do the work,
-      two independent reviews, retry on failure, then write what you paste.</p>
+      <p class="muted small">It runs without you: classify, do the work, independent reviews
+      on separate axes, retry on failure, then write what you paste.</p>
       ${needsAuth ? `<div class="signin-call">
         <h3>Sign in first</h3>
         <p class="muted small">Nothing can run until this app can reach Claude. Sign in with
@@ -599,7 +599,7 @@ wireRoster();
 connect();
 
 
-/** What the new-ticket form's five selects say, with 'auto' meaning "leave it to the analyst". */
+/** What the new-ticket form's five selects say, with 'auto' meaning "the stage's own default". */
 function formPins() {
   const out = {};
   for (const [stage] of PIN_STAGES) {
@@ -629,7 +629,7 @@ function wireTicketControls(node, t) {
         try {
           await api('/api/models', { method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ id: t.id, models: { [sel.dataset.stage]: sel.value } }) });
-          toast(sel.value === 'auto' ? 'Back to the analyst’s choice' : `Pinned to ${sel.value}`);
+          toast(sel.value === 'auto' ? 'Back to the default model' : `Pinned to ${sel.value}`);
         } catch (e) { toast(e.message); }
       };
     }
